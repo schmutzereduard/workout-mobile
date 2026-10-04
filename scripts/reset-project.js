@@ -43,7 +43,7 @@ export default function RootLayout() {
 `;
 
 const rl = readline.createInterface({
-  input: process.stdin,
+  nameInput: process.stdin,
   output: process.stdout,
 });
 
