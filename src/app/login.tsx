@@ -1,7 +1,12 @@
-import {StyleSheet, Text, TextInput, TouchableOpacity, View, Image} from "react-native";
+import {StyleSheet, Text, TextInput, TouchableOpacity, View, Image, ActivityIndicator, Alert} from "react-native";
 import {useState} from "react";
+import {useDispatch, useSelector} from "react-redux";
+import {login} from "@/store/authSlice";
 
 export default function LoginScreen() {
+
+    const dispatch = useDispatch();
+    const { loginLoading } = useSelector(state => state.auth);
 
     const [credentials, setCredentials] = useState({
         username: "",
@@ -36,16 +41,21 @@ export default function LoginScreen() {
                     />
                 </View>
 
-                <TouchableOpacity style={styles.button}>
-                    <Text style={styles.buttonText}>Login</Text>
+                <TouchableOpacity style={styles.button} onPress={() => dispatch(login({ loginRequest: credentials }))}>
+                    {loginLoading ?
+                        <ActivityIndicator size={"large"}/> :
+                        <Text style={styles.buttonText}>Login</Text>}
                 </TouchableOpacity>
-
-                <Text style={styles.forgotPasswordText}>Forgot password</Text>
+                <TouchableOpacity>
+                    <Text style={styles.forgotPasswordText}>Forgot password</Text>
+                </TouchableOpacity>
             </View>
 
             <View style={styles.bottom}>
-                <Text style={styles.accountText}>Don't have an account ?</Text>
-                <Text style={styles.signUpText}>Sign up</Text>
+                <Text style={styles.accountText}>Don't have an account?</Text>
+                <TouchableOpacity>
+                    <Text style={styles.signUpText}>Sign up</Text>
+                </TouchableOpacity>
             </View>
         </View>
     );
@@ -68,7 +78,7 @@ const styles = StyleSheet.create({
     },
     title: {
         color: "white",
-        fontSize: 48,
+        fontSize: 42,
         fontWeight: "bold",
         textAlign: "center"
     },
@@ -76,7 +86,6 @@ const styles = StyleSheet.create({
 
     },
     inputArea: {
-        marginTop: 20,
         marginBottom: 20,
         gap: 5,
     },
@@ -85,7 +94,6 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         backgroundColor: "white",
         fontSize: 24,
-        fontWeight: "bold",
         paddingHorizontal: 15,
     },
     button: {
@@ -96,7 +104,7 @@ const styles = StyleSheet.create({
         marginBottom: 10
     },
     buttonText: {
-        color: "black",
+        color: "white",
         fontSize: 24,
         fontWeight: "bold",
     },
