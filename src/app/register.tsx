@@ -1,5 +1,5 @@
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { useState } from "react";
+import {StyleSheet, Text, TextInput, TextInputProps, TouchableOpacity, View, ViewStyle} from "react-native";
+import React, { useState } from "react";
 import { Dropdown } from "react-native-element-dropdown";
 import InputSpinner from "react-native-input-spinner";
 
@@ -8,8 +8,21 @@ const GENDER_OPTIONS = [
     { label: "Female", value: "F" },
 ];
 
+interface ProfileInfo {
+
+    email: string;
+    password: string;
+    confirmPassword: string;
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    gender: string;
+    height: number;
+    weight: number;
+}
+
 export default function RegisterScreen() {
-    const [info, setInfo] = useState({
+    const [info, setInfo] = useState<ProfileInfo>({
         email: "",
         password: "",
         confirmPassword: "",
@@ -21,7 +34,7 @@ export default function RegisterScreen() {
         weight: 65.0,
     });
 
-    const handleInputChange = (key, value) => {
+    const handleInputChange = (key: string, value: string | number): void => {
         setInfo((prev) => ({
             ...prev,
             [key]: value,
@@ -112,11 +125,12 @@ export default function RegisterScreen() {
                         <Text style={styles.labelText}>Height</Text>
                         <InputSpinner
                             editable={true}
+                            type="number"
                             max={250}
                             min={100}
                             step={1}
                             value={info.height}
-                            onChange={(num) => handleInputChange("height", num)}
+                            onChange={(num: number) => handleInputChange("height", num)}
                             skin="clean"
                             color="white"
                             textColor="black"
@@ -137,7 +151,7 @@ export default function RegisterScreen() {
                             step={0.1}
                             precision={1}
                             value={info.weight}
-                            onChange={(num) => handleInputChange("weight", num)}
+                            onChange={(num: number) => handleInputChange("weight", num)}
                             skin="clean"
                             color="white"
                             textColor="black"
@@ -160,7 +174,24 @@ export default function RegisterScreen() {
     );
 }
 
-const LabeledTextInput = ({ label, fieldKey, placeholder, value, onChangeText, style,   containerStyle, ...rest }) => {
+export interface LabeledTextInputProps extends Omit<TextInputProps, "onChangeText"> {
+    label: string;
+    fieldKey: string;
+    value: string;
+    onChangeText: (fieldKey: string, text: string) => void;
+    containerStyle?: ViewStyle;
+}
+
+export const LabeledTextInput: React.FC<LabeledTextInputProps> = ({
+                                                                      label,
+                                                                      fieldKey,
+                                                                      placeholder,
+                                                                      value,
+                                                                      onChangeText,
+                                                                      style,
+                                                                      containerStyle,
+                                                                      ...rest
+                                                                  }) => {
     return (
         <View style={containerStyle}>
             <Text style={styles.labelText}>{label}</Text>
