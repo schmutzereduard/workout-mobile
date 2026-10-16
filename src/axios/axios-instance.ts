@@ -1,9 +1,9 @@
-import axios from "axios";
+import axios, {AxiosInstance} from "axios";
 import axiosRetry from "axios-retry";
 
-export function createAxiosInstance(baseURL) {
+export function createAxiosInstance(baseURL: string): AxiosInstance {
 
-    const instance = axios.create({
+    const instance: AxiosInstance = axios.create({
         baseURL: baseURL,
         timeout: Number(process.env.EXPO_PUBLIC_REQUEST_TIMEOUT),
     });

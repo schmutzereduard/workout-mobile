@@ -1,12 +1,13 @@
-import {StyleSheet, Text, TextInput, TouchableOpacity, View, Image, ActivityIndicator, Alert} from "react-native";
+import {StyleSheet, Text, TextInput, TouchableOpacity, View, Image, ActivityIndicator} from "react-native";
 import {useState} from "react";
-import {useDispatch, useSelector} from "react-redux";
 import {login} from "@/store/authSlice";
+import {useAppDispatch, useAppSelector} from "@/store/store";
 
 export default function LoginScreen() {
 
-    const dispatch = useDispatch();
-    const { loginLoading } = useSelector(state => state.auth);
+    const dispatch = useAppDispatch();
+    const { backgroundColor, accentColor } = useAppSelector((state: any): any => state.theme);
+    const { loginLoading } = useAppSelector((state: any): any => state.auth);
 
     const [credentials, setCredentials] = useState({
         username: "",
@@ -14,10 +15,10 @@ export default function LoginScreen() {
     });
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor }]}>
             <View style={styles.top}>
                 <Image
-                    source={require('../../assets/images/dumbbell.png')}
+                    source={require('../../assets/images/dumbbell-logo.png')}
                     style={styles.logo}
                     resizeMode="contain"
                 />
@@ -31,6 +32,8 @@ export default function LoginScreen() {
                         value={credentials.username}
                         onChangeText={(text) => setCredentials({...credentials, username: text})}
                         placeholder={"Please enter your username"}
+                        placeholderTextColor={"grey"}
+                        autoCapitalize="none"
                     />
                     <TextInput
                         style={styles.input}
@@ -38,10 +41,11 @@ export default function LoginScreen() {
                         onChangeText={(text) => setCredentials({...credentials, password: text})}
                         placeholder={"Please enter your password"}
                         secureTextEntry={true}
+                        placeholderTextColor={"grey"}
                     />
                 </View>
 
-                <TouchableOpacity style={styles.button} onPress={() => dispatch(login({ loginRequest: credentials }))}>
+                <TouchableOpacity style={[styles.button, { backgroundColor: accentColor }]} onPress={() => dispatch(login({ username: credentials.username, password: credentials.password }))}>
                     {loginLoading ?
                         <ActivityIndicator size={"large"}/> :
                         <Text style={styles.buttonText}>Login</Text>}
@@ -63,7 +67,6 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: "black",
         flex: 1,
         justifyContent: "space-evenly",
         padding: 24
@@ -72,8 +75,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     logo: {
-        width: 260,
-        height: 260,
+        width: 180,
+        height: 180,
         alignSelf: "center"
     },
     title: {

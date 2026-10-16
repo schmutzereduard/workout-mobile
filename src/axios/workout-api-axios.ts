@@ -1,6 +1,7 @@
 import {createAxiosInstance} from "./axios-instance";
+import {AxiosInstance} from "axios";
 
-const instance = createAxiosInstance(process.env.EXPO_PUBLIC_WORKOUT_API_BASE_URL);
+const instance: AxiosInstance = createAxiosInstance(process.env.EXPO_PUBLIC_WORKOUT_API_BASE_URL || "");
 
 instance.interceptors.request.use(
     (config) => {

@@ -1,14 +1,14 @@
 import instance from "../axios/auth-api-axios";
 
 class AuthApi {
-    static login(loginRequest) {
+    static login(username: string, password: string) {
         return instance.post(
             "/authenticate",
-            {}, // Request body payload (pass empty object or body payload required by server)
+            {},
             {
                 auth: {
-                    username: loginRequest.username,
-                    password: loginRequest.password,
+                    username: username,
+                    password: password,
                 },
             }
         );
