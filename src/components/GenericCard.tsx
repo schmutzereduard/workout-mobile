@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import {useAppSelector} from "@/store/store";
+import { useAppSelector } from "@/store/store";
 
 interface GenericCardProps {
     header?: string;
@@ -9,9 +9,10 @@ interface GenericCardProps {
     subtitle?: string;
     children?: React.ReactNode;
     onPress?: () => void;
-    onLongPress?: () => void;     // New: triggered when holding the card down
-    selectable?: boolean;         // New: toggles whether selection mode is active
-    selected?: boolean;           // New: tracks if this specific card is checked
+    onLongPress?: () => void;     // Triggered when holding the card down
+    selectable?: boolean;         // Toggles whether selection mode is active
+    selected?: boolean;           // Tracks if this specific card is checked
+    onPlayPress?: () => void;     // New: Optional play button handler (e.g. for Workouts & Mesocycles)
     style?: ViewStyle;
 }
 
@@ -24,6 +25,7 @@ export default function GenericCard({
                                         onLongPress,
                                         selectable = false,
                                         selected = false,
+                                        onPlayPress,
                                         style
                                     }: GenericCardProps) {
     const { accentColor } = useAppSelector((state: any): any => state.theme);
@@ -49,15 +51,27 @@ export default function GenericCard({
                     {children ? <View style={styles.childrenContainer}>{children}</View> : null}
                 </View>
 
-                {selectable && (
-                    <View style={styles.checkboxContainer}>
-                        <Ionicons
-                            name={selected ? "checkbox" : "square-outline"}
-                            size={26}
-                            color={selected ? accentColor : "#666"}
-                        />
-                    </View>
-                )}
+                <View style={styles.rightActionContainer}>
+                    {onPlayPress && !selectable && (
+                        <TouchableOpacity
+                            onPress={onPlayPress}
+                            style={[styles.playButton, { backgroundColor: accentColor }]}
+                            activeOpacity={0.8}
+                        >
+                            <Ionicons name="play" size={18} color="#FFFFFF" style={styles.playIcon} />
+                        </TouchableOpacity>
+                    )}
+
+                    {selectable && (
+                        <View style={styles.checkboxContainer}>
+                            <Ionicons
+                                name={selected ? "checkbox" : "square-outline"}
+                                size={26}
+                                color={selected ? accentColor : "#666"}
+                            />
+                        </View>
+                    )}
+                </View>
             </View>
         </Container>
     );
@@ -106,9 +120,24 @@ const styles = StyleSheet.create({
     childrenContainer: {
         marginTop: 12,
     },
+    rightActionContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    playButton: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 2,
+    },
+    playIcon: {
+        marginLeft: 2, // Optical centering alignment for play icons
+    },
     checkboxContainer: {
         justifyContent: 'center',
         alignItems: 'center',
-        paddingLeft: 10,
     },
 });

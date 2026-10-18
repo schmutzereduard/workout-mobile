@@ -1,62 +1,57 @@
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useSelector } from "react-redux";
 import CustomHeader from "@/components/CustomHeader";
 import GenericCard from "@/components/GenericCard";
-import { useState } from "react";
+import {useCallback, useState} from "react";
 import { Ionicons } from "@expo/vector-icons";
+import useModals from "@/hooks/useModals";
+import ConfirmDialog from "@/components/modal/ConfirmDialog";
+import {useFocusEffect} from "expo-router";
+import ExerciseModal from "@/components/modal/ExerciseModal";
+import {testExercisesDTO} from "@/utils/TestData";
+import {useAppSelector} from "@/store/store";
 
 export default function ExercisesScreen() {
-    const exercises = [
-        { id: '1', name: 'Barbell Bench Press', notes: 'Chest • Compound', muscleGroups: 'Chest' },
-        { id: '2', name: 'Dumbbell Bench Press', notes: 'Chest • Compound', muscleGroups: 'Chest' },
-        { id: '3', name: 'Incline Dumbbell Press', notes: 'Upper Chest • Compound', muscleGroups: 'Chest' },
-        { id: '4', name: 'Chest Flyes (Cable/Dumbbell)', notes: 'Chest • Isolation', muscleGroups: 'Chest' },
-        { id: '5', name: 'Push-ups', notes: 'Chest • Bodyweight', muscleGroups: 'Chest' },
-
-        // Back
-        { id: '6', name: 'Barbell Deadlift', notes: 'Back / Posterior • Compound', muscleGroups: 'Back' },
-        { id: '7', name: 'Pull-ups', notes: 'Lats / Upper Back • Compound', muscleGroups: 'Back' },
-        { id: '8', name: 'Lat Pulldown', notes: 'Lats • Isolation/Machine', muscleGroups: 'Back' },
-        { id: '9', name: 'Barbell Row', notes: 'Mid Back • Compound', muscleGroups: 'Back' },
-        { id: '10', name: 'Seated Cable Row', notes: 'Mid Back • Compound', muscleGroups: 'Back' },
-
-        // Legs
-        { id: '11', name: 'Barbell Back Squat', notes: 'Quads / Glutes • Compound', muscleGroups: 'Quads' },
-        { id: '12', name: 'Romanian Deadlift (RDL)', notes: 'Hamstrings • Compound', muscleGroups: 'Hamstrings' },
-        { id: '13', name: 'Leg Press', notes: 'Quads • Machine', muscleGroups: 'Quads' },
-        { id: '14', name: 'Bulgarian Split Squat', notes: 'Quads / Glutes • Unilateral', muscleGroups: 'Glutes' },
-        { id: '15', name: 'Standing Calf Raises', notes: 'Calves • Isolation', muscleGroups: 'Calves' },
-
-        // Shoulders
-        { id: '16', name: 'Overhead Press (OHP)', notes: 'Shoulders • Compound', muscleGroups: 'Shoulders' },
-        { id: '17', name: 'Dumbbell Lateral Raises', notes: 'Side Delts • Isolation', muscleGroups: 'Shoulders' },
-        { id: '18', name: 'Face Pulls', notes: 'Rear Delts • Isolation', muscleGroups: 'Shoulders' },
-        { id: '19', name: 'Dumbbell Shoulder Press', notes: 'Shoulders • Compound', muscleGroups: 'Shoulders' },
-
-        // Arms
-        { id: '20', name: 'Barbell Bicep Curl', notes: 'Biceps • Isolation', muscleGroups: 'Biceps' },
-        { id: '21', name: 'Hammer Curls', notes: 'Biceps / Forearms • Isolation', muscleGroups: 'Biceps' },
-        { id: '22', name: 'Tricep Pushdowns', notes: 'Triceps • Isolation', muscleGroups: 'Triceps' },
-        { id: '23', name: 'Skull Crushers', notes: 'Triceps • Isolation', muscleGroups: 'Triceps' },
-
-        // Core
-        { id: '24', name: 'Hanging Leg Raises', notes: 'Abs • Bodyweight', muscleGroups: 'Core' },
-        { id: '25', name: 'Plank', notes: 'Core • Isometric', muscleGroups: 'Core' },
-    ];
 
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
-    const { backgroundColor } = useSelector((state: any) => state.theme);
+    const { backgroundColor, accentColor } = useAppSelector((state: any) => state.theme);
     const [searchQuery, setSearchQuery] = useState('');
+    const { modals, modalControls } = useModals();
+
+    useFocusEffect(
+        useCallback(() => {
+            return () => {
+                setIsSelectionMode(false);
+                setSelectedIds([]);
+            };
+        }, [])
+    );
 
     const handleAddPress = () => {
-        console.log("Opens add exercise modal");
+        modalControls.openModal("addExercise")
     };
 
     const handleDeletePress = () => {
-        console.log("Delete exercises for IDs:", selectedIds);
+        modalControls.openModal("deleteExercise");
+    };
+
+    const handleConfirmDeletePress = () => {
+        console.log("Delete testExercisesDTO for IDs:", selectedIds);
         setIsSelectionMode(false);
         setSelectedIds([]);
+        modalControls.closeModal("deleteExercise")
+    };
+
+    const handlePressCard = (id: string) => {
+        modalControls.openModal("editExercise", { exerciseId: id });
+    };
+
+    const handleSaveExercise = (exerciseData: any) => {
+        console.log("Updating exercise in backend/state:", exerciseData);
+    };
+
+    const handleDeleteExercise = (id: string) => {
+        console.log("Deleting exercise ID:", id);
     };
 
     const handleLongPressCard = (id: string) => {
@@ -75,21 +70,21 @@ export default function ExercisesScreen() {
     };
 
     const handleSelectAll = () => {
-        if (selectedIds.length === exercises.length) {
+        if (selectedIds.length === testExercisesDTO.length) {
             setSelectedIds([]);
             setIsSelectionMode(false);
         } else {
-            setSelectedIds(exercises.map(e => e.id));
+            setSelectedIds(testExercisesDTO.map(e => e.metadata.clientId));
         }
     };
 
-    const filteredExercises = exercises.filter(item =>
+    const filteredExercises = testExercisesDTO.filter(item =>
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.muscleGroups.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.notes.toLowerCase().includes(searchQuery.toLowerCase())
+        item.muscleGroups.map(item => item.toLowerCase()).includes(searchQuery.toLowerCase()) ||
+        item.notes?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const isAllSelected = selectedIds.length === exercises.length && exercises.length > 0;
+    const isAllSelected = selectedIds.length === testExercisesDTO.length && testExercisesDTO.length > 0;
 
     return (
         <View style={[styles.container, { backgroundColor }]}>
@@ -124,22 +119,22 @@ export default function ExercisesScreen() {
             <View style={styles.content}>
                 <FlatList
                     data={filteredExercises}
-                    keyExtractor={(item) => item.id}
+                    keyExtractor={(item) => item.metadata.clientId}
                     renderItem={({ item }) => {
-                        const isSelected = selectedIds.includes(item.id);
+                        const isSelected = selectedIds.includes(item.metadata.clientId);
                         return (
                             <GenericCard
-                                header={item.muscleGroups}
+                                header={item.muscleGroups.join(",")}
                                 title={item.name}
                                 subtitle={item.notes}
                                 selectable={isSelectionMode}
                                 selected={isSelected}
-                                onLongPress={() => handleLongPressCard(item.id)}
+                                onLongPress={() => handleLongPressCard(item.metadata.clientId)}
                                 onPress={() => {
                                     if (isSelectionMode) {
-                                        toggleSelectId(item.id);
+                                        toggleSelectId(item.metadata.clientId);
                                     } else {
-                                        console.log('Selected Exercise: ', item.name);
+                                        handlePressCard(item.metadata.clientId);
                                     }
                                 }}
                             />
@@ -149,10 +144,39 @@ export default function ExercisesScreen() {
             </View>
 
             {!isSelectionMode && (
-                <TouchableOpacity style={styles.fab} onPress={handleAddPress}>
+                <TouchableOpacity style={[styles.addBtn, { backgroundColor: accentColor}]} onPress={handleAddPress}>
                     <Ionicons name="add" size={30} color="#FFF" />
                 </TouchableOpacity>
             )}
+
+            {modals.deleteExercise?.isOpen &&
+                <ConfirmDialog
+                    visible={modals.deleteExercise.isOpen}
+                    title="Delete Exercise(s)"
+                    message={"Are you sure you want to delete these exercise(s)?"}
+                    onConfirm={handleConfirmDeletePress}
+                    onCancel={() => modalControls.closeModal("deleteExercise")}
+                />
+            }
+
+            {modals.addExercise?.isOpen &&
+                <ExerciseModal
+                    visible={modals.addExercise.isOpen}
+                    onSave={handleSaveExercise}
+                    onDelete={handleDeleteExercise}
+                    onClose={() => modalControls.closeModal("addExercise")}
+                />
+            }
+
+            {modals.editExercise?.isOpen &&
+                <ExerciseModal
+                    visible={modals.editExercise.isOpen}
+                    initialData={testExercisesDTO.find(item => item.metadata.clientId === modals.editExercise.exerciseId)}
+                    onSave={handleSaveExercise}
+                    onDelete={handleDeleteExercise}
+                    onClose={() => modalControls.closeModal("editExercise")}
+                />
+            }
         </View>
     );
 }
@@ -211,11 +235,10 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 14,
     },
-    fab: {
+    addBtn: {
         position: 'absolute',
         bottom: 24,
         right: 24,
-        backgroundColor: 'red',
         width: 60,
         height: 60,
         borderRadius: 30,

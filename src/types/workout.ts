@@ -1,6 +1,5 @@
 export interface SyncMetadata {
     id?: number;
-    userId: number;
     clientId: string;
 
     createdAt: string;
@@ -8,16 +7,24 @@ export interface SyncMetadata {
     deletedAt?: string;
 }
 
-export interface MuscleGroupDTO {
-    id: number;
-    name: string;
-}
+export type MuscleGroupName =
+    | 'Back'
+    | 'Chest'
+    | 'Shoulders'
+    | 'Biceps'
+    | 'Triceps'
+    | 'Forearms'
+    | 'Core'
+    | 'Glutes'
+    | 'Quads'
+    | 'Hamstrings'
+    | 'Calves';
 
 export interface ExerciseDTO {
     metadata: SyncMetadata;
     name: string;
     notes?: string;
-    muscleGroups: MuscleGroupDTO[];
+    muscleGroups: (MuscleGroupName | string)[];
 }
 
 export interface ExerciseSetDTO {
@@ -49,8 +56,11 @@ export interface MesocycleDTO {
 
 export interface TemplateExerciseDTO {
     id?: number;
-    workoutTemplateId: number;
-    exerciseId: number;
+    clientId?: string;
+    workoutTemplateId?: number;
+    workoutTemplateClientId?: string;
+    exerciseId?: number;
+    exerciseClientId?: string;
     exerciseOrder: number;
     targetSets: number;
     targetRepetitionsMin: number;
@@ -81,7 +91,7 @@ export interface WorkoutTemplateDTO {
     metadata: SyncMetadata;
     name: string;
     notes?: string;
-    isDeload: boolean;
+    // isDeload: boolean;
     templateExercises?: TemplateExerciseDTO[];
 }
 

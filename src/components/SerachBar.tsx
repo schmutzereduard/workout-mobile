@@ -28,7 +28,7 @@ export default function SearchBar({
                 value={value}
                 onChangeText={onChangeText}
                 placeholder={placeholder}
-                placeholderTextColor="white"
+                placeholderTextColor="lightgray"
             />
 
             {value.length > 0 && (
