@@ -83,7 +83,10 @@ export default function MesocycleCalendar({activeMesocycle, onSelectDate}: Mesoc
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.monthTitle}>{monthNames[month]} {year}</Text>
-                <View style={styles.arrowGroup}>
+                <View style={styles.buttonsGroup}>
+                    <TouchableOpacity onPress={prevMonth} style={styles.addBtn}>
+                        <Ionicons name="add-outline" size={20} color="#FFF" />
+                    </TouchableOpacity>
                     <TouchableOpacity onPress={prevMonth} style={styles.arrowBtn}>
                         <Ionicons name="chevron-back" size={20} color="#FFF" />
                     </TouchableOpacity>
@@ -130,9 +133,14 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
     },
-    arrowGroup: {
+    buttonsGroup: {
         flexDirection: 'row',
         gap: 8,
+    },
+    addBtn: {
+        backgroundColor: '#333333',
+        padding: 6,
+        borderRadius: 8,
     },
     arrowBtn: {
         backgroundColor: '#333333',

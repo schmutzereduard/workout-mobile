@@ -42,7 +42,6 @@ export default function GenericCard({
             ]}
         >
             <View style={styles.cardContent}>
-                {/* Text and main body content */}
                 <View style={styles.textContainer}>
                     {header ? <Text style={styles.header}>{header}</Text> : null}
                     <Text style={styles.title}>{title}</Text>
@@ -50,7 +49,6 @@ export default function GenericCard({
                     {children ? <View style={styles.childrenContainer}>{children}</View> : null}
                 </View>
 
-                {/* Checkbox appears on the middle-right when selectable mode is active */}
                 {selectable && (
                     <View style={styles.checkboxContainer}>
                         <Ionicons

@@ -25,9 +25,8 @@ export default function MesocyclesScreen() {
     return (
         <ScrollView style={[styles.container, { backgroundColor }]}>
             <CustomHeader
-                title="Mesocycles"
-                onAddButtonPress={handleAddPress}
-                onHistoryButtonPress={handleHistoryPress}
+                title={"Mesocycles"}
+                onHistoryPress={handleHistoryPress}
             />
 
             <View style={styles.content}>
