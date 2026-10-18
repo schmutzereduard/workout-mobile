@@ -8,17 +8,25 @@ export interface SyncMetadata {
     deletedAt?: string;
 }
 
+export interface MuscleGroupDTO {
+    id: number;
+    name: string;
+}
+
 export interface ExerciseDTO {
     metadata: SyncMetadata;
     name: string;
     notes?: string;
+    muscleGroups: MuscleGroupDTO[];
 }
 
 export interface ExerciseSetDTO {
     id?: number;
     setNumber: number;
     weight: number;
+    targetRepetitions: number;
     actualRepetitions: number;
+    repetitionsInReserve?: number;
 }
 
 export interface MesocycleTemplateDTO {
@@ -32,6 +40,8 @@ export interface MesocycleTemplateDTO {
 export interface MesocycleDTO {
     metadata: SyncMetadata;
     name: string;
+    targetWeeks: number;
+    deloadWeek: number;
     startDate: string;
     endDate: string;
     mesocycleTemplates?: MesocycleTemplateDTO[];
@@ -62,6 +72,7 @@ export interface WorkoutDTO {
     workoutTemplateId: number;
     name: string;
     notes?: string;
+    isDeload: boolean;
     completedAt: string;
     exercises?: WorkoutExerciseDTO[];
 }
@@ -70,6 +81,7 @@ export interface WorkoutTemplateDTO {
     metadata: SyncMetadata;
     name: string;
     notes?: string;
+    isDeload: boolean;
     templateExercises?: TemplateExerciseDTO[];
 }
 
