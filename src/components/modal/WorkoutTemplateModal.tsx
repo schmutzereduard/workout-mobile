@@ -20,7 +20,7 @@ interface WorkoutTemplateModalProps {
     visible: boolean;
     initialData?: WorkoutTemplateDTO | null;
     exercisesList: ExerciseDTO[];
-    onSave: (data: WorkoutTemplateDTO, templateExercises: TemplateExerciseDTO[]) => void;
+    onSave: (data: WorkoutTemplateDTO) => void;
     onDelete?: (clientId: string) => void;
     onClose: () => void;
 }
