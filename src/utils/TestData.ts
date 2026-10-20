@@ -1,4 +1,4 @@
-import {ExerciseDTO, WorkoutTemplateDTO} from "@/types/workout";
+import {ExerciseDTO, MesocycleDTO, WorkoutTemplateDTO} from "@/types/workout";
 
 export const testExercisesDTO: ExerciseDTO[] = [
     // Chest
@@ -43,7 +43,7 @@ export const testWorkoutTemplatesDTO: WorkoutTemplateDTO[] = [
     {
         metadata: { id: 1, clientId: "201", createdAt: "2026-10-18" },
         name: 'Upper Body A',
-        notes: 'Chest, Shoulders & Triceps • 5 Exercises',
+        notes: '',
     },
     {
         metadata: { id: 2, clientId: "202", createdAt: "2026-10-18" },
@@ -52,17 +52,139 @@ export const testWorkoutTemplatesDTO: WorkoutTemplateDTO[] = [
     },
     {
         metadata: { id: 3, clientId: "203", createdAt: "2026-10-18" },
-        name: 'Push Day B',
-        notes: 'Bench Press, Overhead Press • 5 Exercises'
+        name: 'Push Day',
+        notes: '',
+        templateExercises: [
+            {
+                clientId: "201124",
+                exerciseClientId: "124",
+                targetSets: 3,
+                exerciseOrder: 1,
+                targetRepetitionsMin: 8,
+                targetRepetitionsMax: 12
+            },
+            {
+                clientId: "201126",
+                exerciseClientId: "126",
+                targetSets: 3,
+                exerciseOrder: 2,
+                targetRepetitionsMin: 8,
+                targetRepetitionsMax: 12
+            },
+            {
+                clientId: "201144",
+                exerciseClientId: "144",
+                targetSets: 3,
+                exerciseOrder: 3,
+                targetRepetitionsMin: 8,
+                targetRepetitionsMax: 12
+            }
+        ]
     },
     {
         metadata: { id: 4, clientId: "204", createdAt: "2026-10-18" },
-        name: 'Pull Day A',
-        notes: 'Deadlifts, Rows & Pull-ups • 5 Exercises'
+        name: 'Pull Day',
+        notes: '',
+        templateExercises: [
+            {
+                clientId: "201129",
+                exerciseClientId: "129",
+                targetSets: 3,
+                exerciseOrder: 1,
+                targetRepetitionsMin: 8,
+                targetRepetitionsMax: 12
+            },
+            {
+                clientId: "201131",
+                exerciseClientId: "131",
+                targetSets: 3,
+                exerciseOrder: 2,
+                targetRepetitionsMin: 8,
+                targetRepetitionsMax: 12
+            },
+            {
+                clientId: "201140",
+                exerciseClientId: "140",
+                targetSets: 3,
+                exerciseOrder: 3,
+                targetRepetitionsMin: 8,
+                targetRepetitionsMax: 12
+            }
+        ]
     },
     {
         metadata: { id: 5, clientId: "205", createdAt: "2026-10-18" },
-        name: 'Leg Day B',
-        notes: 'Squats, RDLs & Core • 4 Exercises'
+        name: 'Leg Day',
+        notes: '',
+        templateExercises: [
+            {
+                clientId: "201133",
+                exerciseClientId: "133",
+                targetSets: 3,
+                exerciseOrder: 1,
+                targetRepetitionsMin: 8,
+                targetRepetitionsMax: 12
+            },
+            {
+                clientId: "201135",
+                exerciseClientId: "135",
+                targetSets: 3,
+                exerciseOrder: 2,
+                targetRepetitionsMin: 8,
+                targetRepetitionsMax: 12
+            },
+            {
+                clientId: "201137",
+                exerciseClientId: "137",
+                targetSets: 3,
+                exerciseOrder: 3,
+                targetRepetitionsMin: 8,
+                targetRepetitionsMax: 12
+            }
+        ]
     },
+];
+
+export const testMesocyclesDTO: MesocycleDTO[] = [
+    {
+        metadata: { id: 1, clientId: "301", createdAt: "2026-10-18" },
+        name: 'Hypertrophy Block 1 (4 Weeks)',
+        targetWeeks: 4,
+        deloadWeek: 4,
+        startDate: '2026-10-19',
+        endDate: '2026-11-15',
+        mesocycleTemplates: [
+            // --- Week 1 ---
+            { id: 1, mesocycleId: 1, workoutTemplateId: 3, weekNumber: 1, dayNumber: 1 }, // Push Day (Monday)
+            { id: 2, mesocycleId: 1, workoutTemplateId: 4, weekNumber: 1, dayNumber: 2 }, // Pull Day (Tuesday)
+            { id: 3, mesocycleId: 1, workoutTemplateId: 5, weekNumber: 1, dayNumber: 4 }, // Leg Day (Thursday)
+
+            // --- Week 2 ---
+            { id: 4, mesocycleId: 1, workoutTemplateId: 3, weekNumber: 2, dayNumber: 1 }, // Push Day (Monday)
+            { id: 5, mesocycleId: 1, workoutTemplateId: 4, weekNumber: 2, dayNumber: 2 }, // Pull Day (Tuesday)
+            { id: 6, mesocycleId: 1, workoutTemplateId: 5, weekNumber: 2, dayNumber: 4 }, // Leg Day (Thursday)
+
+            // --- Week 3 ---
+            { id: 7, mesocycleId: 1, workoutTemplateId: 3, weekNumber: 3, dayNumber: 1 }, // Push Day (Monday)
+            { id: 8, mesocycleId: 1, workoutTemplateId: 4, weekNumber: 3, dayNumber: 2 }, // Pull Day (Tuesday)
+            { id: 9, mesocycleId: 1, workoutTemplateId: 5, weekNumber: 3, dayNumber: 4 }, // Leg Day (Thursday)
+        ]
+    },
+    {
+        metadata: { id: 2, clientId: "302", createdAt: "2026-10-18" },
+        name: 'Strength Peak Block',
+        targetWeeks: 2,
+        deloadWeek: 2,
+        startDate: '2026-11-16',
+        endDate: '2026-12-13',
+        mesocycleTemplates: [
+            // --- Week 1 ---
+            { id: 10, mesocycleId: 2, workoutTemplateId: 1, weekNumber: 1, dayNumber: 1 }, // Upper Body A
+            { id: 11, mesocycleId: 2, workoutTemplateId: 2, weekNumber: 1, dayNumber: 3 }, // Lower Body A
+
+            // --- Week 2 ---
+            { id: 12, mesocycleId: 2, workoutTemplateId: 1, weekNumber: 2, dayNumber: 1 }, // Upper Body A
+            { id: 13, mesocycleId: 2, workoutTemplateId: 2, weekNumber: 2, dayNumber: 3 }, // Lower Body A
+        ]
+    }
 ];

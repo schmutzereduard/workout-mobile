@@ -1,25 +1,32 @@
-import { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView } from 'react-native';
+import { StyleSheet, View, ScrollView } from 'react-native';
 import CustomHeader from '../../components/CustomHeader';
 import MesocycleCalendar from '../../components/MesocycleCalendar';
 import GenericCard from "@/components/GenericCard";
 import {useAppSelector} from "@/store/store";
+import useModals from "@/hooks/useModals";
+import MesocycleModal from "@/components/modal/MesocycleModal";
+import {MesocycleDTO} from "@/types/workout";
 
 export default function MesocyclesScreen() {
 
-    const { backgroundColor, accentColor } = useAppSelector((state: any): any => state.theme);
-    const [activeMeso, setActiveMeso] = useState({
-        name: 'Hypertrophy Block A',
-        startDate: '2026-10-01',
-        endDate: '2026-10-22', // 6 weeks later
-    });
+    const { backgroundColor } = useAppSelector((state: any): any => state.theme);
+    const { modals, modalControls } = useModals();
 
     const handleHistoryPress = () => {
         console.log('Open past mesocycles history modal');
     };
 
     const handleAddPress = () => {
-        console.log("Opens add mesocycle modal");
+        modalControls.openModal("addMesocycle");
+    };
+
+    const handleDatePress = (date: string) => {
+        //TODO: iterate through mesocycles and open Add / Edit Mesocycle modal
+        modalControls.openModal("editMesocycle");
+    };
+
+    const handleSavePress = (mesocycleData: MesocycleDTO) => {
+        console.log("Saving mesocycle: " + mesocycleData)
     };
 
     return (
@@ -31,8 +38,8 @@ export default function MesocyclesScreen() {
 
             <View style={styles.content}>
                 <MesocycleCalendar
-                    activeMesocycle={activeMeso}
-                    onSelectDate={(date) => console.log('Selected date:', date)}
+                    onAddPress={handleAddPress}
+                    onSelectDate={handleDatePress}
                 />
 
                 <GenericCard
@@ -41,6 +48,24 @@ export default function MesocyclesScreen() {
                     subtitle="Tap to start tracking session"
                     onPress={() => console.log('Open session')}
                 />
+
+                {modals.addMesocycle?.isOpen &&
+                    <MesocycleModal
+                        visible={modals.addMesocycle.isOpen}
+                        onSave={handleSavePress}
+                        onClose={() => modalControls.closeModal("addMesocycle")}
+                    />
+                }
+
+                {modals.editMesocycle?.isOpen &&
+                    <MesocycleModal
+                        visible={modals.editMesocycle.isOpen}
+                        //TODO - iterate through mesocycles and pass Edit Mesocycle / do this on handleDatePress and pass from modal.editMesoycles.obj
+                        // initialData={}
+                        onSave={handleSavePress}
+                        onClose={() => modalControls.closeModal("editMesocycle")}
+                    />
+                }
             </View>
         </ScrollView>
     );

@@ -38,8 +38,11 @@ export interface ExerciseSetDTO {
 
 export interface MesocycleTemplateDTO {
     id?: number;
-    mesocycleId: number;
-    workoutTemplateId: number;
+    clientId?: string;
+    mesocycleId?: number;
+    mesocycleClientId?: string;
+    workoutTemplateId?: number;
+    workoutTemplateClientId?: string;
     weekNumber: number;
     dayNumber: number;
 }
@@ -82,7 +85,7 @@ export interface WorkoutDTO {
     workoutTemplateId: number;
     name: string;
     notes?: string;
-    isDeload: boolean;
+    isDeload?: boolean;
     completedAt: string;
     exercises?: WorkoutExerciseDTO[];
 }
@@ -91,7 +94,7 @@ export interface WorkoutTemplateDTO {
     metadata: SyncMetadata;
     name: string;
     notes?: string;
-    // isDeload: boolean;
+    isDeload?: boolean;
     templateExercises?: TemplateExerciseDTO[];
 }
 

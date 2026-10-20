@@ -1,21 +1,18 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import {useAppSelector} from "@/store/store";
+import { useAppSelector } from "@/store/store";
+import {DAYS_NAMES_SHORT, MONTH_NAMES} from "@/utils/Constants";
+import { MesocycleDTO } from "@/types/workout";
+import {testMesocyclesDTO} from "@/utils/TestData";
 
 interface MesocycleCalendarProps {
-    activeMesocycle?: {
-        startDate: string;
-        endDate: string;
-        name: string;
-    } | null;
-    onSelectDate?: (dateString: string) => void;
-    accentColor?: string;
+    onSelectDate?: (dateString: string, matchedMesocycle?: MesocycleDTO) => void;
+    onAddPress?: () => void;
 }
 
-export default function MesocycleCalendar({activeMesocycle, onSelectDate}: MesocycleCalendarProps) {
-
-    const { accentColor } = useAppSelector((state: any):any => state.theme);
+export default function MesocycleCalendar({ onSelectDate, onAddPress }: MesocycleCalendarProps) {
+    const { accentColor } = useAppSelector((state: any): any => state.theme);
     const [currentDate, setCurrentDate] = useState(new Date());
 
     const prevMonth = () => {
@@ -25,16 +22,12 @@ export default function MesocycleCalendar({activeMesocycle, onSelectDate}: Mesoc
     const nextMonth = () => {
         setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
     };
+
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
 
     const firstDayIndex = new Date(year, month, 1).getDay();
     const totalDays = new Date(year, month + 1, 0).getDate();
-
-    const monthNames = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-    ];
 
     const days = [];
 
@@ -47,32 +40,29 @@ export default function MesocycleCalendar({activeMesocycle, onSelectDate}: Mesoc
         const formattedDay = String(day).padStart(2, '0');
         const dateString = `${year}-${formattedMonth}-${formattedDay}`;
 
-        let isInMesocycle = false;
-        let isStart = false;
-        let isEnd = false;
+        const currentTime = new Date(dateString).getTime();
 
-        if (activeMesocycle) {
-            const current = new Date(dateString).getTime();
-            const start = new Date(activeMesocycle.startDate).getTime();
-            const end = new Date(activeMesocycle.endDate).getTime();
+        const matchedMesocycle = testMesocyclesDTO.find(meso => {
+            const start = new Date(meso.startDate).getTime();
+            const end = new Date(meso.endDate).getTime();
+            return currentTime >= start && currentTime <= end;
+        });
 
-            isInMesocycle = current >= start && current <= end;
-            isStart = current === start;
-            isEnd = current === end;
-        }
+        const isInMesocycle = !!matchedMesocycle;
 
         days.push(
             <TouchableOpacity
                 key={dateString}
                 style={[
                     styles.dayCell,
-                    isInMesocycle && { backgroundColor: `${accentColor}33` },
-                    isStart && { borderTopLeftRadius: 8, borderBottomLeftRadius: 8, backgroundColor: accentColor },
-                    isEnd && { borderTopRightRadius: 8, borderBottomRightRadius: 8, backgroundColor: accentColor },
+                    isInMesocycle && {
+                        backgroundColor: `${accentColor}33`,
+                        borderRadius: 8
+                    },
                 ]}
-                onPress={() => onSelectDate && onSelectDate(dateString)}
+                onPress={() => onSelectDate && onSelectDate(dateString, matchedMesocycle)}
             >
-                <Text style={[styles.dayText, (isStart || isEnd) && styles.endpointText]}>
+                <Text style={styles.dayText}>
                     {day}
                 </Text>
             </TouchableOpacity>
@@ -82,9 +72,9 @@ export default function MesocycleCalendar({activeMesocycle, onSelectDate}: Mesoc
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.monthTitle}>{monthNames[month]} {year}</Text>
+                <Text style={styles.monthTitle}>{MONTH_NAMES[month]} {year}</Text>
                 <View style={styles.buttonsGroup}>
-                    <TouchableOpacity onPress={prevMonth} style={styles.addBtn}>
+                    <TouchableOpacity onPress={onAddPress} style={styles.addBtn}>
                         <Ionicons name="add-outline" size={20} color="#FFF" />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={prevMonth} style={styles.arrowBtn}>
@@ -97,7 +87,7 @@ export default function MesocycleCalendar({activeMesocycle, onSelectDate}: Mesoc
             </View>
 
             <View style={styles.weekDaysRow}>
-                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d, index) => (
+                {DAYS_NAMES_SHORT.map((d, index) => (
                     <Text key={index} style={styles.weekDayText}>{d}</Text>
                 ))}
             </View>
@@ -177,9 +167,5 @@ const styles = StyleSheet.create({
     dayText: {
         color: '#FFFFFF',
         fontSize: 14,
-    },
-    endpointText: {
-        color: '#FFFFFF',
-        fontWeight: 'bold',
     },
 });

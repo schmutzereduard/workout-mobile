@@ -132,8 +132,17 @@ export default function WorkoutTemplatesScreen() {
                         const isSelected = selectedIds.includes(item.metadata.clientId);
                         return (
                             <GenericCard
-                                title={item.name}
-                                subtitle={item.notes}
+                                header={
+                                    item.templateExercises
+                                        ? item.templateExercises
+                                            .map(tempEx => testExercisesDTO.find(ex => ex.metadata.clientId === tempEx.exerciseClientId))
+                                            .filter(Boolean)
+                                            .flatMap(ex => ex!.muscleGroups)
+                                            .filter((group, index, self) => self.indexOf(group) === index)
+                                            .join(' • ')
+                                        : ''
+                                }                                title={item.name}
+                                subtitle={`${item.templateExercises ? item.templateExercises.length : 0} Exercises\n${item.notes}`}
                                 selectable={isSelectionMode}
                                 selected={isSelected}
                                 onLongPress={() => handleLongPressCard(item.metadata.clientId)}

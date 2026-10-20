@@ -51,7 +51,6 @@ export default function TemplateExerciseModal({
     }, [initialData, visible]);
 
 
-    console.log(exercisesList);
     const filteredExercises = exercisesList.filter(ex =>
         ex.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         ex.muscleGroups.map(item => item.toLowerCase()).includes(searchQuery.toLowerCase())
@@ -86,8 +85,6 @@ export default function TemplateExerciseModal({
             targetRepetitionsMin: parsedMin,
             targetRepetitionsMax: parsedMax,
         };
-
-        console.log(templateExercise);
 
         onSave(templateExercise);
         onClose();
