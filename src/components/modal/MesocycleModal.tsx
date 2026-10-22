@@ -114,7 +114,31 @@ export default function MesocycleModal({
     };
 
     const handleRemoveScheduledWorkout = (index: number) => {
-        setScheduledWorkouts(scheduledWorkouts.filter((_, i) => i !== index));
+        const filtered = scheduledWorkouts.filter((_, i) => i !== index);
+
+        const weeksMap = new Map<number, MesocycleTemplateDTO[]>();
+
+        filtered.forEach(item => {
+            const week = item.weekNumber || 1;
+            if (!weeksMap.has(week)) {
+                weeksMap.set(week, []);
+            }
+            weeksMap.get(week)!.push(item);
+        });
+
+        const resequenced: MesocycleTemplateDTO[] = [];
+
+        weeksMap.forEach((templatesInWeek, weekNum) => {
+            templatesInWeek.forEach((item, dayIndex) => {
+                resequenced.push({
+                    ...item,
+                    weekNumber: weekNum,
+                    dayNumber: dayIndex + 1, // Reset days to 1, 2, 3... within this week
+                });
+            });
+        });
+
+        setScheduledWorkouts(resequenced);
     };
 
     const handleMoveUp = (index: number) => {
@@ -194,11 +218,42 @@ export default function MesocycleModal({
         onClose();
     };
 
-    const getTemplateName = (templateId: number | string) => {
+    const getTemplateName = (templateClientId: string) => {
         const found = testWorkoutTemplatesDTO.find(
-            t => t.metadata?.clientId === String(templateId) || t.metadata?.id === Number(templateId)
+            t => t.metadata?.clientId === String(templateClientId)
         );
-        return found ? found.name : `Template #${templateId}`;
+        return found ? found.name : `Template #${templateClientId}`;
+    };
+
+    const handleRepeatLastWeek = () => {
+        if (scheduledWorkouts.length === 0) {
+            setError('Add workouts for Week 1 before repeating.');
+            return;
+        }
+
+        // Find the highest week number currently scheduled
+        const maxWeek = Math.max(...scheduledWorkouts.map(w => w.weekNumber));
+        const targetWeeksNum = parseInt(targetWeeks, 10) || 4;
+
+        if (maxWeek >= targetWeeksNum) {
+            setError(`Cannot repeat past target weeks limit (${targetWeeksNum} weeks).`);
+            return;
+        }
+
+        const nextWeekNumber = maxWeek + 1;
+
+        // Grab all templates belonging to the latest week
+        const lastWeekTemplates = scheduledWorkouts.filter(w => w.weekNumber === maxWeek);
+
+        // Duplicate them with the new weekNumber
+        const duplicatedTemplates: MesocycleTemplateDTO[] = lastWeekTemplates.map(item => ({
+            ...item,
+            id: undefined, // Clear id so backend/state treats it as a new slot entry
+            weekNumber: nextWeekNumber,
+        }));
+
+        setScheduledWorkouts([...scheduledWorkouts, ...duplicatedTemplates]);
+        setError('');
     };
 
     const isEditMode = !!initialData?.metadata?.clientId;
@@ -231,7 +286,6 @@ export default function MesocycleModal({
                             onChangeText={(val) => { setName(val); setError(''); }}
                         />
 
-                        {/* Target Weeks & Deload Week Row */}
                         <View style={styles.rowDates}>
                             <View style={styles.dateCol}>
                                 <Text style={styles.label}>Target Weeks *</Text>
@@ -276,17 +330,27 @@ export default function MesocycleModal({
 
                         <View style={styles.sectionHeaderRow}>
                             <Text style={styles.label}>Scheduled Templates ({scheduledWorkouts.length})</Text>
-                            <TouchableOpacity
-                                style={[styles.addSlotHeaderBtn, { borderColor: accentColor }]}
-                                press-feedback="none"
-                                onPress={() => {
-                                    setEditingTemplateIndex(null);
-                                    modalControls.openModal("addTemplate");
-                                }}
-                            >
-                                <Ionicons name="add" size={16} color={accentColor} />
-                                <Text style={[styles.addSlotHeaderText, { color: accentColor }]}>Add Workout</Text>
-                            </TouchableOpacity>
+
+                            <View style={styles.headerButtonRow}>
+                                <TouchableOpacity
+                                    style={[styles.addSlotHeaderBtn, { borderColor: '#555' }]}
+                                    onPress={handleRepeatLastWeek}
+                                >
+                                    <Ionicons name="copy-outline" size={14} color="#AAA" />
+                                    <Text style={[styles.addSlotHeaderText, { color: '#AAA' }]}>Repeat Week</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.addSlotHeaderBtn, { borderColor: accentColor }]}
+                                    press-feedback="none"
+                                    onPress={() => {
+                                        setEditingTemplateIndex(null);
+                                        modalControls.openModal("addTemplate");
+                                    }}
+                                >
+                                    <Ionicons name="add" size={16} color={accentColor} />
+                                    <Text style={[styles.addSlotHeaderText, { color: accentColor }]}>Add Workout</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
 
                         {scheduledWorkouts.length > 0 && (
@@ -300,7 +364,7 @@ export default function MesocycleModal({
                                                 modalControls.openModal("addTemplate");
                                             }}
                                         >
-                                            <Text style={styles.slotTitle}>{getTemplateName(slot.workoutTemplateId || "")}</Text>
+                                            <Text style={styles.slotTitle}>{getTemplateName(slot.workoutTemplateClientId || "")}</Text>
                                             <Text style={styles.slotSub}>Week {slot.weekNumber} • Day {slot.dayNumber}</Text>
                                         </TouchableOpacity>
                                         <View style={styles.slotActions}>
@@ -446,6 +510,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 14,
         marginBottom: 6,
+    },
+    headerButtonRow: {
+        flexDirection: 'column',
+        gap: 8,
+        alignItems: 'center',
     },
     addSlotHeaderBtn: {
         flexDirection: 'row',

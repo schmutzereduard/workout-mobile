@@ -206,7 +206,6 @@ export default function WorkoutTemplateModal({
                                                 </Text>
                                             </View>
 
-                                            {/* Action Buttons: Move Up, Move Down, Delete */}
                                             <View style={styles.cardActions}>
                                                 <TouchableOpacity
                                                     style={[styles.actionIconBtn, index === 0 && styles.disabledIconBtn]}
@@ -241,7 +240,6 @@ export default function WorkoutTemplateModal({
                             </ScrollView>
                         </View>
 
-                        {/* Bottom spacing inside scroll */}
                         <View style={{ height: 20 }} />
 
                     </ScrollView>
