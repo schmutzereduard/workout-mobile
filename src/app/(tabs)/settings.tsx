@@ -3,7 +3,7 @@ import CustomHeader from "@/components/CustomHeader";
 import {useAppSelector} from "@/store/store";
 
 export default function TemplatesScreen() {
-    const { backgroundColor , accentColor } = useAppSelector((state: any): any => state.theme);
+    const { backgroundColor} = useAppSelector((state: any): any => state.theme);
 
     return (
         <View style={[styles.container, { backgroundColor }]}>

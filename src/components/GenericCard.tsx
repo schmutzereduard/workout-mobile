@@ -9,10 +9,10 @@ interface GenericCardProps {
     subtitle?: string;
     children?: React.ReactNode;
     onPress?: () => void;
-    onLongPress?: () => void;     // Triggered when holding the card down
-    selectable?: boolean;         // Toggles whether selection mode is active
-    selected?: boolean;           // Tracks if this specific card is checked
-    onPlayPress?: () => void;     // New: Optional play button handler (e.g. for Workouts & Mesocycles)
+    onLongPress?: () => void;
+    selectable?: boolean;
+    selected?: boolean;
+    onPlayPress?: () => void;
     style?: ViewStyle;
 }
 
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     playIcon: {
-        marginLeft: 2, // Optical centering alignment for play icons
+        marginLeft: 2,
     },
     checkboxContainer: {
         justifyContent: 'center',

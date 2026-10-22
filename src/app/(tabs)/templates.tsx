@@ -142,7 +142,7 @@ export default function WorkoutTemplatesScreen() {
                                             .join(' • ')
                                         : ''
                                 }                                title={item.name}
-                                subtitle={`${item.templateExercises ? item.templateExercises.length : 0} Exercises\n${item.notes}`}
+                                subtitle={`${item.templateExercises?.length || 0} Exercises${item.notes ? `\n${item.notes}` : ""}`}
                                 selectable={isSelectionMode}
                                 selected={isSelected}
                                 onLongPress={() => handleLongPressCard(item.metadata.clientId)}

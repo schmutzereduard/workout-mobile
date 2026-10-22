@@ -2,19 +2,16 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
-import SearchBar from './SerachBar'; // Adjust path as needed
+import SearchBar from './SerachBar';
 
 export interface CustomHeaderProps {
-    title?: string;                       // Optional title (if not using search)
-    showSearch?: boolean;                 // Toggle whether search bar appears
-    searchQuery?: string;                 // Search query value
-    onSearchChange?: (text: string) => void; // Search input handler
-    searchPlaceholder?: string;           // Custom search placeholder
-    onClearSearch?: () => void;           // Clear search handler
-
-    // Optional Action Buttons
+    title?: string;
+    showSearch?: boolean;
+    searchQuery?: string;
+    onSearchChange?: (text: string) => void;
+    searchPlaceholder?: string;
+    onClearSearch?: () => void;
     onHistoryPress?: () => void;
-
     style?: ViewStyle;
 }
 

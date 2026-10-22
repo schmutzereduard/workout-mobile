@@ -155,19 +155,19 @@ export const testMesocyclesDTO: MesocycleDTO[] = [
         endDate: '2026-11-15',
         mesocycleTemplates: [
             // --- Week 1 ---
-            { id: 1, mesocycleId: 1, workoutTemplateId: 3, weekNumber: 1, dayNumber: 1 }, // Push Day (Monday)
-            { id: 2, mesocycleId: 1, workoutTemplateId: 4, weekNumber: 1, dayNumber: 2 }, // Pull Day (Tuesday)
-            { id: 3, mesocycleId: 1, workoutTemplateId: 5, weekNumber: 1, dayNumber: 4 }, // Leg Day (Thursday)
+            { id: 1, mesocycleId: 1, workoutTemplateId: 3, workoutTemplateClientId: "203", weekNumber: 1, dayNumber: 1 }, // Push Day (Monday)
+            { id: 2, mesocycleId: 1, workoutTemplateId: 4, workoutTemplateClientId: "204", weekNumber: 1, dayNumber: 2 }, // Pull Day (Tuesday)
+            { id: 3, mesocycleId: 1, workoutTemplateId: 5, workoutTemplateClientId: "205", weekNumber: 1, dayNumber: 4 }, // Leg Day (Thursday)
 
             // --- Week 2 ---
-            { id: 4, mesocycleId: 1, workoutTemplateId: 3, weekNumber: 2, dayNumber: 1 }, // Push Day (Monday)
-            { id: 5, mesocycleId: 1, workoutTemplateId: 4, weekNumber: 2, dayNumber: 2 }, // Pull Day (Tuesday)
-            { id: 6, mesocycleId: 1, workoutTemplateId: 5, weekNumber: 2, dayNumber: 4 }, // Leg Day (Thursday)
+            { id: 4, mesocycleId: 1, workoutTemplateId: 3, workoutTemplateClientId: "203", weekNumber: 2, dayNumber: 1 }, // Push Day (Monday)
+            { id: 5, mesocycleId: 1, workoutTemplateId: 4, workoutTemplateClientId: "204", weekNumber: 2, dayNumber: 2 }, // Pull Day (Tuesday)
+            { id: 6, mesocycleId: 1, workoutTemplateId: 5, workoutTemplateClientId: "205", weekNumber: 2, dayNumber: 4 }, // Leg Day (Thursday)
 
             // --- Week 3 ---
-            { id: 7, mesocycleId: 1, workoutTemplateId: 3, weekNumber: 3, dayNumber: 1 }, // Push Day (Monday)
-            { id: 8, mesocycleId: 1, workoutTemplateId: 4, weekNumber: 3, dayNumber: 2 }, // Pull Day (Tuesday)
-            { id: 9, mesocycleId: 1, workoutTemplateId: 5, weekNumber: 3, dayNumber: 4 }, // Leg Day (Thursday)
+            { id: 7, mesocycleId: 1, workoutTemplateId: 3, workoutTemplateClientId: "203", weekNumber: 3, dayNumber: 1 }, // Push Day (Monday)
+            { id: 8, mesocycleId: 1, workoutTemplateId: 4, workoutTemplateClientId: "204", weekNumber: 3, dayNumber: 2 }, // Pull Day (Tuesday)
+            { id: 9, mesocycleId: 1, workoutTemplateId: 5, workoutTemplateClientId: "205", weekNumber: 3, dayNumber: 4 }, // Leg Day (Thursday)
         ]
     },
     {

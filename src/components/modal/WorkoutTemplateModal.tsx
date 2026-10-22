@@ -110,7 +110,7 @@ export default function WorkoutTemplateModal({
     };
 
     const handleMoveDown = (index: number) => {
-        if (index === templateExercises.length - 1) return; // Already at bottom
+        if (index === templateExercises.length - 1) return;
         const updated = [...templateExercises];
         const temp = updated[index];
         updated[index] = updated[index + 1];

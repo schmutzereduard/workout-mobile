@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import {useAppSelector} from "@/store/store";
 import {AVAILABLE_MUSCLE_GROUPS} from "@/utils/Constants";
 import {ExerciseDTO} from "@/types/workout";
+import {testExercisesDTO} from "@/utils/TestData";
 
 interface ExerciseModalProps {
     visible: boolean;
@@ -59,13 +60,16 @@ export default function ExerciseModal({
     };
 
     const handleSavePress = () => {
-        //TODO: Unique name validation
         if (!name.trim()) {
             setError('Exercise name cannot be empty');
             return;
         }
         if (selectedMuscles.length === 0) {
             setError('Select at least one muscle group');
+            return;
+        }
+        if (testExercisesDTO.find(exerc => exerc.metadata.clientId !== initialData?.metadata.clientId && exerc.name === name)) {
+            setError('Exercise name already exists');
             return;
         }
 
@@ -260,9 +264,6 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         borderWidth: 1,
         borderColor: '#3A3A3A',
-    },
-    chipSelected: {
-        // Dynamic background color is injected inline via accentColor
     },
     chipText: {
         color: '#AAAAAA',

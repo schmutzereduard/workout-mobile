@@ -1,7 +1,6 @@
 import React from 'react';
-import { StyleSheet, TextInput, View, TouchableOpacity, ViewStyle } from 'react-native';
+import { StyleSheet, TextInput, View, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAppSelector } from "@/store/store";
 
 interface SearchBarProps {
     value: string;
@@ -16,9 +15,6 @@ export default function SearchBar({
                                       placeholder = "Search...",
                                       onClear,
                                   }: SearchBarProps) {
-
-    const { accentColor } = useAppSelector((state: any) => state.theme);
-
     return (
         <View style={[styles.container, styles.headerSearchBar]}>
             <Ionicons name="search" size={20} color="white" style={styles.searchIcon} />
@@ -42,8 +38,8 @@ export default function SearchBar({
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: '#212121', // YouTube dark search bar matte background
-        borderRadius: 20,           // More pill-shaped like YouTube
+        backgroundColor: '#212121',
+        borderRadius: 20,
         marginHorizontal: 16,
         marginVertical: 10,
         paddingHorizontal: 16,
@@ -51,7 +47,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#303030',     // Subtle YouTube-style outline border
+        borderColor: '#303030',
     },
     headerSearchBar: {
         flex: 1,
@@ -64,9 +60,9 @@ const styles = StyleSheet.create({
     },
     input: {
         flex: 1,
-        color: '#FFFFFF',          // Crisp white text
+        color: '#FFFFFF',
         fontSize: 16,
-        paddingVertical: 0,        // Ensures text centers cleanly on Android/iOS
+        paddingVertical: 0,
     },
     clearButton: {
         padding: 4,

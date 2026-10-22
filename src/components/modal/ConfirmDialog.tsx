@@ -4,7 +4,7 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 interface ConfirmDialogProps {
     visible: boolean;
     title?: string;
-    message: string;          // Pass text like `Are you sure you want to delete ${itemName}?`
+    message: string;
     onConfirm: () => void;
     onCancel: () => void;
     confirmText?: string;
@@ -25,7 +25,7 @@ export default function ConfirmDialog({
             transparent
             visible={visible}
             animationType="fade"
-            onRequestClose={onCancel} // Required for Android hardware back button
+            onRequestClose={onCancel}
         >
             <View style={styles.overlay}>
                 <View style={styles.dialogBox}>
@@ -50,13 +50,13 @@ export default function ConfirmDialog({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)', // Semi-transparent backdrop
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
         justifyContent: 'center',
         alignItems: 'center',
     },
     dialogBox: {
         width: '80%',
-        backgroundColor: '#1E1E1E', // Matches your dark theme cards
+        backgroundColor: '#1E1E1E',
         borderRadius: 16,
         padding: 20,
         alignItems: 'center',
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#333333',
     },
     confirmBtn: {
-        backgroundColor: '#E53935', // Red accent matching your header/cards
+        backgroundColor: '#E53935',
     },
     cancelText: {
         color: '#FFFFFF',

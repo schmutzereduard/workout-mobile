@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
         backgroundColor: "white",
         borderRadius: 8,
         paddingHorizontal: 14,
-        height: 48, // Matches standard TextInput height
+        height: 48,
         justifyContent: "center",
     },
     dropdownText: {

@@ -12,7 +12,7 @@ import {
 import * as Crypto from 'expo-crypto';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector } from "@/store/store";
-import {TemplateExerciseDTO, ExerciseDTO, WorkoutTemplateDTO} from "@/types/workout";
+import {TemplateExerciseDTO, WorkoutTemplateDTO} from "@/types/workout";
 import {testExercisesDTO} from "@/utils/TestData";
 
 interface TemplateExerciseModalProps {

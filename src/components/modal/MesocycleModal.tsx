@@ -13,12 +13,14 @@ import * as Crypto from 'expo-crypto';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector } from "@/store/store";
 import { MesocycleDTO, MesocycleTemplateDTO } from "@/types/workout";
-import { testWorkoutTemplatesDTO } from "@/utils/TestData";
+import {testMesocyclesDTO, testWorkoutTemplatesDTO} from "@/utils/TestData";
 import MesocycleTemplateModal from "@/components/modal/MesocycleTemplateModal";
+import useModals from "@/hooks/useModals";
 
 interface MesocycleModalProps {
     visible: boolean;
     initialData?: MesocycleDTO | null;
+    initialDate? : string | null;
     onSave: (mesocycleData: MesocycleDTO) => void;
     onDelete?: (clientId: string) => void;
     onClose: () => void;
@@ -27,11 +29,14 @@ interface MesocycleModalProps {
 export default function MesocycleModal({
                                            visible,
                                            initialData,
+                                           initialDate,
                                            onSave,
                                            onDelete,
                                            onClose
                                        }: MesocycleModalProps) {
     const { accentColor } = useAppSelector((state: any) => state.theme);
+
+    const { modals, modalControls } = useModals();
 
     const [name, setName] = useState('');
     const [targetWeeks, setTargetWeeks] = useState('4');
@@ -40,13 +45,15 @@ export default function MesocycleModal({
     const [endDate, setEndDate] = useState('');
     const [scheduledWorkouts, setScheduledWorkouts] = useState<MesocycleTemplateDTO[]>([]);
 
-    const [isAddTemplateModalVisible, setIsAddTemplateModalVisible] = useState(false);
     const [editingTemplateIndex, setEditingTemplateIndex] = useState<number | null>(null);
 
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (startDate) {
+
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+        if (startDate && dateRegex.test(startDate)) {
             const weeks = parseInt(targetWeeks, 10) || 4;
             const start = new Date(startDate);
             if (!isNaN(start.getTime())) {
@@ -54,6 +61,8 @@ export default function MesocycleModal({
                 calculatedEnd.setDate(calculatedEnd.getDate() + (weeks * 7 - 1));
                 setEndDate(calculatedEnd.toISOString().split('T')[0]);
             }
+        } else {
+            setEndDate("");
         }
     }, [startDate, targetWeeks]);
 
@@ -69,8 +78,7 @@ export default function MesocycleModal({
             setName('');
             setTargetWeeks('4');
             setDeloadWeek('4');
-            const today = new Date().toISOString().split('T')[0];
-            setStartDate(today);
+            setStartDate(initialDate || "");
             setScheduledWorkouts([]);
         }
         setError('');
@@ -102,7 +110,7 @@ export default function MesocycleModal({
         } else {
             setScheduledWorkouts([...scheduledWorkouts, slotData]);
         }
-        setIsAddTemplateModalVisible(false);
+        modalControls.closeModal("addTemplate");
     };
 
     const handleRemoveScheduledWorkout = (index: number) => {
@@ -160,6 +168,10 @@ export default function MesocycleModal({
         }
         if (!startDate || !endDate) {
             setError('Start and end dates are required');
+            return;
+        }
+        if (testMesocyclesDTO.find(meso => meso.metadata.clientId !== initialData?.metadata.clientId && endDate >= meso.startDate && endDate <= meso.endDate)) {
+            setError('Mesocycle already exists in interval');
             return;
         }
 
@@ -269,7 +281,7 @@ export default function MesocycleModal({
                                 press-feedback="none"
                                 onPress={() => {
                                     setEditingTemplateIndex(null);
-                                    setIsAddTemplateModalVisible(true);
+                                    modalControls.openModal("addTemplate");
                                 }}
                             >
                                 <Ionicons name="add" size={16} color={accentColor} />
@@ -285,7 +297,7 @@ export default function MesocycleModal({
                                             style={{ flex: 1 }}
                                             onPress={() => {
                                                 setEditingTemplateIndex(index);
-                                                setIsAddTemplateModalVisible(true);
+                                                modalControls.openModal("addTemplate");
                                             }}
                                         >
                                             <Text style={styles.slotTitle}>{getTemplateName(slot.workoutTemplateId || "")}</Text>
@@ -339,17 +351,16 @@ export default function MesocycleModal({
                 </Pressable>
             </Pressable>
 
-            {/* Secondary Sub-modal for selecting templates, week, and day */}
-            {isAddTemplateModalVisible && (
+            {modals.addTemplate?.isOpen && (
                 <MesocycleTemplateModal
-                    visible={isAddTemplateModalVisible}
+                    visible={modals.addTemplate.isOpen}
                     templatesList={testWorkoutTemplatesDTO}
                     existingSlots={scheduledWorkouts}
                     initialData={editingTemplateIndex !== null ? scheduledWorkouts[editingTemplateIndex] : undefined}
                     defaultWeek={nextDefaults.week}
                     defaultDay={nextDefaults.day}
                     onSave={handleSaveTemplateSlot}
-                    onClose={() => setIsAddTemplateModalVisible(false)}
+                    onClose={() => modalControls.closeModal("addTemplate")}
                 />
             )}
         </Modal>
