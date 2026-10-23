@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import AuthApi from "../api/AuthApi";
 import { Alert } from "react-native";
-import { LocalStorage, StorageKeys } from "@/utils/storage";
+import { LocalStorage, StorageKeys } from "@/utils/Storage";
 import { LoginRequest, AuthState } from "@/types/auth";
 import { ErrorDTO } from "@/types/error";
 import axios from "axios";

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector } from "@/store/store";
 import {DAYS_NAMES_SHORT, MONTH_NAMES} from "@/utils/Constants";
 import { MesocycleDTO } from "@/types/workout";
-import {testMesocyclesDTO} from "@/utils/TestData";
+import WorkoutUtils from "@/utils/Storage";
 
 interface MesocycleCalendarProps {
     onSelectDate?: (dateString: string, matchedMesocycle?: MesocycleDTO) => void;
@@ -42,7 +42,7 @@ export default function MesocycleCalendar({ onSelectDate, onAddPress }: Mesocycl
 
         const currentTime = new Date(dateString).getTime();
 
-        const matchedMesocycle = testMesocyclesDTO.find(meso => {
+        const matchedMesocycle = WorkoutUtils.getMesocycles().find(meso => {
             const start = new Date(meso.startDate).getTime();
             const end = new Date(meso.endDate).getTime();
             return currentTime >= start && currentTime <= end;

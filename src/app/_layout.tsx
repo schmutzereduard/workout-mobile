@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import {Provider, useDispatch} from 'react-redux';
 import {store, useAppSelector,} from '@/store/store';
-import { storage } from '@/utils/storage';
 import { refreshToken } from '@/store/authSlice';
+import {LocalStorage, StorageKeys} from "@/utils/Storage";
 
 function InitialLayout() {
 
@@ -14,7 +14,7 @@ function InitialLayout() {
     const { token } = useAppSelector((state: any): any => state.auth);
 
     useEffect(() => {
-        const savedToken = storage.getString('auth_token');
+        const savedToken = LocalStorage.getString(StorageKeys.AUTH_TOKEN);
         if (savedToken && !token) {
             dispatch(refreshToken());
         }

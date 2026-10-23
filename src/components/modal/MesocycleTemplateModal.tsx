@@ -9,13 +9,14 @@ import {
     StyleSheet,
     ScrollView
 } from 'react-native';
+import * as Crypto from 'expo-crypto';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector } from "@/store/store";
 import { MesocycleTemplateDTO, WorkoutTemplateDTO } from "@/types/workout";
+import WorkoutUtils from "@/utils/Storage";
 
 interface MesocycleTemplateModalProps {
     visible: boolean;
-    templatesList: WorkoutTemplateDTO[];
     existingSlots: MesocycleTemplateDTO[];
     initialData?: MesocycleTemplateDTO;
     defaultWeek: number;
@@ -26,7 +27,6 @@ interface MesocycleTemplateModalProps {
 
 export default function MesocycleTemplateModal({
                                                    visible,
-                                                   templatesList,
                                                    existingSlots,
                                                    initialData,
                                                    defaultWeek,
@@ -53,7 +53,7 @@ export default function MesocycleTemplateModal({
         }
     }, [initialData, visible, defaultWeek, defaultDay]);
 
-    const filteredTemplates = templatesList.filter(t =>
+    const filteredTemplates = WorkoutUtils.getWorkoutTemplates().filter(t =>
         t.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -89,7 +89,8 @@ export default function MesocycleTemplateModal({
 
         const templateSlot: MesocycleTemplateDTO = {
             id: initialData?.id,
-            mesocycleClientId: initialData?.mesocycleClientId,
+            clientId: initialData?.clientId || Crypto.randomUUID(),
+            mesocycleClientId: initialData?.mesocycleClientId || Crypto.randomUUID(),
             workoutTemplateClientId: selectedTemplateClientId,
             weekNumber: parsedWeek,
             dayNumber: parsedDay,

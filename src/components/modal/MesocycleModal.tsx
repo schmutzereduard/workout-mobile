@@ -13,15 +13,14 @@ import * as Crypto from 'expo-crypto';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector } from "@/store/store";
 import { MesocycleDTO, MesocycleTemplateDTO } from "@/types/workout";
-import {testMesocyclesDTO, testWorkoutTemplatesDTO} from "@/utils/TestData";
 import MesocycleTemplateModal from "@/components/modal/MesocycleTemplateModal";
 import useModals from "@/hooks/useModals";
 import ActionMenu, {AnchorRect} from "@/components/ActionMenu";
+import WorkoutUtils from "@/utils/Storage";
 
 interface MesocycleModalProps {
     visible: boolean;
     initialData?: MesocycleDTO | null;
-    initialDate? : string | null;
     onSave: (mesocycleData: MesocycleDTO) => void;
     onDelete?: (clientId: string) => void;
     onClose: () => void;
@@ -30,7 +29,6 @@ interface MesocycleModalProps {
 export default function MesocycleModal({
                                            visible,
                                            initialData,
-                                           initialDate,
                                            onSave,
                                            onDelete,
                                            onClose
@@ -42,8 +40,8 @@ export default function MesocycleModal({
     const headerButtonRef = useRef<View>(null);
 
     const [name, setName] = useState('');
-    const [targetWeeks, setTargetWeeks] = useState('4');
-    const [deloadWeek, setDeloadWeek] = useState('4');
+    const [targetWeeks, setTargetWeeks] = useState('');
+    const [deloadWeek, setDeloadWeek] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [scheduledWorkouts, setScheduledWorkouts] = useState<MesocycleTemplateDTO[]>([]);
@@ -71,17 +69,17 @@ export default function MesocycleModal({
 
     useEffect(() => {
         if (initialData) {
-            setName(initialData.name || '');
-            setTargetWeeks(String(initialData.targetWeeks || 4));
-            setDeloadWeek(String(initialData.deloadWeek || 4));
-            setStartDate(initialData.startDate || '');
-            setEndDate(initialData.endDate || '');
+            setName(initialData.name);
+            setTargetWeeks(String(initialData.targetWeeks));
+            setDeloadWeek(String(initialData.deloadWeek));
+            setStartDate(initialData.startDate);
+            setEndDate(initialData.endDate);
             setScheduledWorkouts(initialData.mesocycleTemplates || []);
         } else {
             setName('');
-            setTargetWeeks('4');
-            setDeloadWeek('4');
-            setStartDate(initialDate || "");
+            setTargetWeeks('');
+            setDeloadWeek('');
+            setStartDate("");
             setScheduledWorkouts([]);
         }
         setError('');
@@ -203,7 +201,7 @@ export default function MesocycleModal({
             setError('Start and end dates are required');
             return;
         }
-        if (testMesocyclesDTO.find(meso => meso.metadata.clientId !== initialData?.metadata.clientId && endDate >= meso.startDate && endDate <= meso.endDate)) {
+        if (WorkoutUtils.getMesocycles().find(meso => meso.metadata.clientId !== initialData?.metadata.clientId && endDate >= meso.startDate && endDate <= meso.endDate)) {
             setError('Mesocycle already exists in interval');
             return;
         }
@@ -228,7 +226,7 @@ export default function MesocycleModal({
     };
 
     const getTemplateName = (templateClientId: string) => {
-        const found = testWorkoutTemplatesDTO.find(
+        const found = WorkoutUtils.getWorkoutTemplates().find(
             t => t.metadata?.clientId === String(templateClientId)
         );
         return found ? found.name : `Template #${templateClientId}`;
@@ -352,10 +350,7 @@ export default function MesocycleModal({
                                     <View key={slot.id || index} style={styles.slotItem}>
                                         <TouchableOpacity
                                             style={{ flex: 1 }}
-                                            onPress={() => {
-                                                setEditingTemplateIndex(index);
-                                                modalControls.openModal("addTemplate");
-                                            }}
+                                            onPress={() => modalControls.openModal("editTemplate", { templateIndex: index })}
                                         >
                                             <Text style={styles.slotTitle}>{getTemplateName(slot.workoutTemplateClientId || "")}</Text>
                                             <Text style={styles.slotSub}>Week {slot.weekNumber} • Day {slot.dayNumber}</Text>
@@ -411,13 +406,23 @@ export default function MesocycleModal({
             {modals.addTemplate?.isOpen && (
                 <MesocycleTemplateModal
                     visible={modals.addTemplate.isOpen}
-                    templatesList={testWorkoutTemplatesDTO}
                     existingSlots={scheduledWorkouts}
-                    initialData={editingTemplateIndex !== null ? scheduledWorkouts[editingTemplateIndex] : undefined}
                     defaultWeek={nextDefaults.week}
                     defaultDay={nextDefaults.day}
                     onSave={handleSaveTemplateSlot}
                     onClose={() => modalControls.closeModal("addTemplate")}
+                />
+            )}
+
+            {modals.editTemplate?.isOpen && (
+                <MesocycleTemplateModal
+                    visible={modals.editTemplate.isOpen}
+                    existingSlots={scheduledWorkouts}
+                    initialData={scheduledWorkouts[modals.editTemplate.templateIndex]}
+                    defaultWeek={nextDefaults.week}
+                    defaultDay={nextDefaults.day}
+                    onSave={handleSaveTemplateSlot}
+                    onClose={() => modalControls.closeModal("editTemplate")}
                 />
             )}
 
@@ -430,10 +435,7 @@ export default function MesocycleModal({
                         label: 'Add Workout',
                         icon: 'add-outline',
                         color: accentColor,
-                        onPress: () => {
-                            setEditingTemplateIndex(null);
-                            modalControls.openModal("addTemplate");
-                        },
+                        onPress: () => modalControls.openModal("addTemplate")
                     },
                     {
                         label: 'Repeat Week',

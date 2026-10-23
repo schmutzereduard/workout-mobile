@@ -7,8 +7,8 @@ import useModals from "@/hooks/useModals";
 import ConfirmDialog from "@/components/modal/ConfirmDialog";
 import {useFocusEffect} from "expo-router";
 import ExerciseModal from "@/components/modal/ExerciseModal";
-import {testExercisesDTO} from "@/utils/TestData";
 import {useAppSelector} from "@/store/store";
+import WorkoutUtils from "@/utils/Storage";
 
 export default function ExercisesScreen() {
 
@@ -17,6 +17,8 @@ export default function ExercisesScreen() {
     const { backgroundColor, accentColor } = useAppSelector((state: any) => state.theme);
     const [searchQuery, setSearchQuery] = useState('');
     const { modals, modalControls } = useModals();
+
+    let exercises = WorkoutUtils.getExercises();
 
     useFocusEffect(
         useCallback(() => {
@@ -36,7 +38,7 @@ export default function ExercisesScreen() {
     };
 
     const handleConfirmDeletePress = () => {
-        console.log("Delete testExercisesDTO for IDs:", selectedIds);
+        WorkoutUtils.deleteExercises(selectedIds);
         setIsSelectionMode(false);
         setSelectedIds([]);
         modalControls.closeModal("deleteExercise")
@@ -46,12 +48,17 @@ export default function ExercisesScreen() {
         modalControls.openModal("editExercise", { exerciseId: id });
     };
 
-    const handleSaveExercise = (exerciseData: any) => {
-        console.log("Updating exercise in backend/state:", exerciseData);
+    const handleAddExercise = (exerciseData: any) => {
+        WorkoutUtils.addExercise(exerciseData);
+    };
+
+    const handleEditExercise = (exerciseData: any) => {
+        WorkoutUtils.editExercise(exerciseData);
     };
 
     const handleDeleteExercise = (id: string) => {
-        console.log("Deleting exercise ID:", id);
+        WorkoutUtils.deleteExercises(Array.of(id));
+        ;
     };
 
     const handleLongPressCard = (id: string) => {
@@ -70,21 +77,21 @@ export default function ExercisesScreen() {
     };
 
     const handleSelectAll = () => {
-        if (selectedIds.length === testExercisesDTO.length) {
+        if (selectedIds.length === exercises.length) {
             setSelectedIds([]);
             setIsSelectionMode(false);
         } else {
-            setSelectedIds(testExercisesDTO.map(e => e.metadata.clientId));
+            setSelectedIds(exercises.map(e => e.metadata.clientId));
         }
     };
 
-    const filteredExercises = testExercisesDTO.filter(item =>
+    const filteredExercises = exercises.filter(item =>
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.muscleGroups.map(item => item.toLowerCase()).includes(searchQuery.toLowerCase()) ||
         item.notes?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const isAllSelected = selectedIds.length === testExercisesDTO.length && testExercisesDTO.length > 0;
+    const isAllSelected = selectedIds.length === filteredExercises.length && filteredExercises.length > 0;
 
     return (
         <View style={[styles.container, { backgroundColor }]}>
@@ -162,7 +169,8 @@ export default function ExercisesScreen() {
             {modals.addExercise?.isOpen &&
                 <ExerciseModal
                     visible={modals.addExercise.isOpen}
-                    onSave={handleSaveExercise}
+                    exercises={exercises}
+                    onSave={handleAddExercise}
                     onDelete={handleDeleteExercise}
                     onClose={() => modalControls.closeModal("addExercise")}
                 />
@@ -171,8 +179,9 @@ export default function ExercisesScreen() {
             {modals.editExercise?.isOpen &&
                 <ExerciseModal
                     visible={modals.editExercise.isOpen}
-                    initialData={testExercisesDTO.find(item => item.metadata.clientId === modals.editExercise.exerciseId)}
-                    onSave={handleSaveExercise}
+                    initialData={WorkoutUtils.getExercise(modals.editExercise.exerciseId)}
+                    exercises={exercises}
+                    onSave={handleEditExercise}
                     onDelete={handleDeleteExercise}
                     onClose={() => modalControls.closeModal("editExercise")}
                 />

@@ -13,12 +13,12 @@ import * as Crypto from 'expo-crypto';
 import { Ionicons } from '@expo/vector-icons';
 import {useAppSelector} from "@/store/store";
 import {AVAILABLE_MUSCLE_GROUPS} from "@/utils/Constants";
-import {ExerciseDTO} from "@/types/workout";
-import {testExercisesDTO} from "@/utils/TestData";
+import {ExerciseDTO, MuscleGroupName} from "@/types/workout";
 
 interface ExerciseModalProps {
     visible: boolean;
     initialData?: ExerciseDTO | null;
+    exercises: ExerciseDTO[];
     onSave: (data: ExerciseDTO) => void;
     onDelete?: (id: string) => void;
     onClose: () => void;
@@ -27,6 +27,7 @@ interface ExerciseModalProps {
 export default function ExerciseModal({
                                           visible,
                                           initialData,
+                                          exercises,
                                           onSave,
                                           onDelete,
                                           onClose
@@ -35,7 +36,7 @@ export default function ExerciseModal({
 
     const [name, setName] = useState('');
     const [notes, setNotes] = useState('');
-    const [selectedMuscles, setSelectedMuscles] = useState<string[]>([]);
+    const [selectedMuscles, setSelectedMuscles] = useState<MuscleGroupName[]>([]);
     const [error, setError] = useState('');
 
     useEffect(() => {
@@ -51,7 +52,7 @@ export default function ExerciseModal({
         setError('');
     }, [initialData, visible]);
 
-    const toggleMuscleGroup = (group: string) => {
+    const toggleMuscleGroup = (group: MuscleGroupName) => {
         if (selectedMuscles.includes(group)) {
             setSelectedMuscles(selectedMuscles.filter(m => m !== group));
         } else {
@@ -68,14 +69,14 @@ export default function ExerciseModal({
             setError('Select at least one muscle group');
             return;
         }
-        if (testExercisesDTO.find(exerc => exerc.metadata.clientId !== initialData?.metadata.clientId && exerc.name === name)) {
+        if (exercises.find(exercise => exercise.metadata.clientId !== initialData?.metadata.clientId && exercise.name.toLowerCase() === name.toLowerCase())) {
             setError('Exercise name already exists');
             return;
         }
 
-        const metadata = initialData?.metadata || {
-            clientId: Crypto.randomUUID(),
-            createdAt: new Date().toISOString(),
+        const metadata = {
+            id: initialData?.metadata.id,
+            clientId: initialData?.metadata.clientId || Crypto.randomUUID(),
         };
 
         onSave({

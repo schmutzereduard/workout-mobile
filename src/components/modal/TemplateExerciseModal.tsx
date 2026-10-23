@@ -13,7 +13,7 @@ import * as Crypto from 'expo-crypto';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector } from "@/store/store";
 import {TemplateExerciseDTO, WorkoutTemplateDTO} from "@/types/workout";
-import {testExercisesDTO} from "@/utils/TestData";
+import WorkoutUtils from "@/utils/Storage";
 
 interface TemplateExerciseModalProps {
     visible: boolean;
@@ -31,7 +31,6 @@ export default function TemplateExerciseModal({
                                                   onClose
                                               }: TemplateExerciseModalProps) {
 
-    const exercisesList = testExercisesDTO;
     const { accentColor } = useAppSelector((state: any) => state.theme);
 
     const [selectedExerciseId, setSelectedExerciseId] = useState<string>();
@@ -52,7 +51,7 @@ export default function TemplateExerciseModal({
     }, [initialData, visible]);
 
 
-    const filteredExercises = exercisesList.filter(ex =>
+    const filteredExercises = WorkoutUtils.getExercises().filter(ex =>
         ex.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         ex.muscleGroups.map(item => item.toLowerCase()).includes(searchQuery.toLowerCase())
     );
@@ -79,7 +78,7 @@ export default function TemplateExerciseModal({
             clientId: initialData?.clientId || Crypto.randomUUID(),
             workoutTemplateId: workoutTemplate?.metadata.id,
             workoutTemplateClientId: workoutTemplate?.metadata.clientId,
-            exerciseId: exercisesList.find(ex => ex.metadata.clientId === selectedExerciseId)?.metadata.id,
+            exerciseId: WorkoutUtils.getExercises().find(ex => ex.metadata.clientId === selectedExerciseId)?.metadata.id,
             exerciseClientId: selectedExerciseId,
             exerciseOrder: initialData?.exerciseOrder ?? ((workoutTemplate?.templateExercises?.length ?? 0) + 1),
             targetSets: parsedSets,

@@ -23,7 +23,7 @@ export interface SyncMetadata {
     id?: number;
     clientId: string;
 
-    createdAt: string;
+    createdAt?: string;
     updatedAt?: string;
     deletedAt?: string;
 }
@@ -47,11 +47,11 @@ export interface ExerciseSetDTO {
 
 export interface MesocycleTemplateDTO {
     id?: number;
-    clientId?: string;
+    clientId: string;
     mesocycleId?: number;
-    mesocycleClientId?: string;
+    mesocycleClientId: string;
     workoutTemplateId?: number;
-    workoutTemplateClientId?: string;
+    workoutTemplateClientId: string;
     weekNumber: number;
     dayNumber: number;
 }
@@ -68,11 +68,11 @@ export interface MesocycleDTO {
 
 export interface TemplateExerciseDTO {
     id?: number;
-    clientId?: string;
+    clientId: string;
     workoutTemplateId?: number;
-    workoutTemplateClientId?: string;
+    workoutTemplateClientId: string;
     exerciseId?: number;
-    exerciseClientId?: string;
+    exerciseClientId: string;
     exerciseOrder: number;
     warmupSets?: number;
     targetSets: number;
@@ -93,7 +93,7 @@ export interface WorkoutExerciseDTO {
 export interface WorkoutDTO {
     metadata: SyncMetadata;
     workoutTemplateId?: number;
-    workoutTemplateClientId?: string;
+    workoutTemplateClientId: string;
     name: string;
     notes?: string;
     isDeload?: boolean;

@@ -1,5 +1,6 @@
+import {MuscleGroupName} from "@/types/workout";
 
-export const AVAILABLE_MUSCLE_GROUPS = [
+export const AVAILABLE_MUSCLE_GROUPS: MuscleGroupName[] = [
     'Back', 'Chest', 'Shoulders', 'Biceps', 'Triceps',
     'Forearms', 'Core', 'Glutes', 'Quads', 'Hamstrings', 'Calves'
 ];

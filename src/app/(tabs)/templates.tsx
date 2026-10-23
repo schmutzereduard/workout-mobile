@@ -6,9 +6,9 @@ import { Ionicons } from "@expo/vector-icons";
 import {useAppSelector} from "@/store/store";
 import useModals from "@/hooks/useModals";
 import ConfirmDialog from "@/components/modal/ConfirmDialog";
-import {testExercisesDTO, testWorkoutTemplatesDTO} from "@/utils/TestData";
 import {useFocusEffect} from "expo-router";
 import WorkoutTemplateModal from "@/components/modal/WorkoutTemplateModal";
+import WorkoutUtils from "@/utils/Storage";
 
 export default function WorkoutTemplatesScreen() {
 
@@ -17,6 +17,8 @@ export default function WorkoutTemplatesScreen() {
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const { backgroundColor, accentColor } = useAppSelector((state: any) => state.theme);
     const [searchQuery, setSearchQuery] = useState('');
+
+    const workoutTemplates = WorkoutUtils.getWorkoutTemplates();
 
     useFocusEffect(
         useCallback(() => {
@@ -36,7 +38,7 @@ export default function WorkoutTemplatesScreen() {
     };
 
     const handleConfirmDeletePress = () => {
-        console.log("Delete templates for IDs:", selectedIds);
+        WorkoutUtils.deleteWorkoutTemplates(selectedIds);
         setIsSelectionMode(false);
         setSelectedIds([]);
         modalControls.closeModal("deleteTemplate")
@@ -46,12 +48,16 @@ export default function WorkoutTemplatesScreen() {
         modalControls.openModal("editTemplate", { templateId: id });
     };
 
-    const handleSaveTemplate = (templateData: any) => {
-        console.log("Updating template in backend/state:", templateData);
+    const handleAddTemplate = (templateData: any) => {
+        WorkoutUtils.addWorkoutTemplate(templateData);
+    };
+
+    const handleEditTemplate = (templateData: any) => {
+        WorkoutUtils.editWorkoutTemplate(templateData);
     };
 
     const handleDeleteTemplate = (id: string) => {
-        console.log("Deleting template ID:", id);
+        WorkoutUtils.deleteWorkoutTemplates(Array.of(id));
     };
 
     const handleHistoryPress = () => {
@@ -74,24 +80,24 @@ export default function WorkoutTemplatesScreen() {
     };
 
     const handleSelectAll = () => {
-        if (selectedIds.length === testWorkoutTemplatesDTO.length) {
+        if (selectedIds.length === workoutTemplates.length) {
             setSelectedIds([]);
             setIsSelectionMode(false);
         } else {
-            setSelectedIds(testWorkoutTemplatesDTO.map(t => t.metadata.clientId));
+            setSelectedIds(workoutTemplates.map(t => t.metadata.clientId));
         }
     };
 
     const handlePlayPress = () => {
-
+        console.log("Open workout page");
     };
 
-    const filteredTemplates = testWorkoutTemplatesDTO.filter(item =>
+    const filteredTemplates = workoutTemplates.filter(item =>
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.notes?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const isAllSelected = selectedIds.length === testWorkoutTemplatesDTO.length && testWorkoutTemplatesDTO.length > 0;
+    const isAllSelected = selectedIds.length === filteredTemplates.length && filteredTemplates.length > 0;
 
     return (
         <View style={[styles.container, { backgroundColor }]}>
@@ -135,7 +141,7 @@ export default function WorkoutTemplatesScreen() {
                                 header={
                                     item.templateExercises
                                         ? item.templateExercises
-                                            .map(tempEx => testExercisesDTO.find(ex => ex.metadata.clientId === tempEx.exerciseClientId))
+                                            .map(tempEx => WorkoutUtils.getExercise(tempEx.exerciseClientId))
                                             .filter(Boolean)
                                             .flatMap(ex => ex!.muscleGroups)
                                             .filter((group, index, self) => self.indexOf(group) === index)
@@ -178,8 +184,8 @@ export default function WorkoutTemplatesScreen() {
             {modals.addTemplate?.isOpen &&
                 <WorkoutTemplateModal
                     visible={modals.addTemplate.isOpen}
-                    exercisesList={testExercisesDTO}
-                    onSave={handleSaveTemplate}
+                    templates={workoutTemplates}
+                    onSave={handleAddTemplate}
                     onDelete={handleDeleteTemplate}
                     onClose={() => modalControls.closeModal("addTemplate")}
                 />
@@ -188,9 +194,9 @@ export default function WorkoutTemplatesScreen() {
             {modals.editTemplate?.isOpen &&
                 <WorkoutTemplateModal
                     visible={modals.editTemplate.isOpen}
-                    exercisesList={testExercisesDTO}
-                    initialData={testWorkoutTemplatesDTO.find(item => item.metadata.clientId === modals.editTemplate.templateId)}
-                    onSave={handleSaveTemplate}
+                    initialData={WorkoutUtils.getWorkoutTemplate(modals.editTemplate.templateId)}
+                    templates={workoutTemplates}
+                    onSave={handleEditTemplate}
                     onDelete={handleDeleteTemplate}
                     onClose={() => modalControls.closeModal("editTemplate")}
                 />

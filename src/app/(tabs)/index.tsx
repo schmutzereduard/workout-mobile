@@ -6,7 +6,8 @@ import {useAppSelector} from "@/store/store";
 import useModals from "@/hooks/useModals";
 import MesocycleModal from "@/components/modal/MesocycleModal";
 import {MesocycleDTO, WorkoutTemplateDTO} from "@/types/workout";
-import {testExercisesDTO, testMesocyclesDTO, testWorkoutTemplatesDTO} from "@/utils/TestData";
+import MesocycleHistoryModal from "@/components/modal/MesocycleHistoryModal";
+import WorkoutUtils from "@/utils/Storage";
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -16,7 +17,7 @@ export default function MesocyclesScreen() {
     const { modals, modalControls } = useModals();
 
     const handleHistoryPress = () => {
-        console.log('Open past mesocycles history modal');
+        modalControls.openModal("mesocyclesHistory")
     };
 
     const handleAddPress = () => {
@@ -24,7 +25,8 @@ export default function MesocyclesScreen() {
     };
 
     const handleDatePress = (date: string) => {
-        const existingMeso = testMesocyclesDTO.find(meso => date >= meso.startDate && date <= meso.endDate);
+        //TODO -> Open View only workout
+        const existingMeso = WorkoutUtils.getMesocycles().find(meso => date >= meso.startDate && date <= meso.endDate);
         if (existingMeso) {
             modalControls.openModal("editMesocycle", { mesocycle: existingMeso })
         } else {
@@ -33,35 +35,11 @@ export default function MesocyclesScreen() {
     };
 
     const handleSavePress = (mesocycleData: MesocycleDTO) => {
-        console.log("Saving mesocycle: " + mesocycleData)
+        console.log("Saving mesocycle: " + JSON.stringify(mesocycleData));
     };
 
-    const handlePlayPress = () => {
-        console.log("Starting session");
-    };
-
-    const getActiveMesocycleTemplates = () => {
-        const today = new Date().toISOString().split('T')[0];
-        const activeMesoTemplates = testMesocyclesDTO.find(
-            meso => today >= meso.startDate && today <= meso.endDate
-        )?.mesocycleTemplates;
-
-        if (!activeMesoTemplates)
-            return [];
-
-        //TODO: Check last workouts performed linked to this Meso and skip them.
-        return activeMesoTemplates
-            .filter(mesoTemp => mesoTemp)
-            .sort((a, b) => {
-                if (a.weekNumber !== b.weekNumber) {
-                    return a.weekNumber - b.weekNumber;
-                }
-                return a.dayNumber - b.dayNumber;
-            });
-    };
-
-    const getWorkoutTemplate = (workoutTemplateClientId: string | undefined): WorkoutTemplateDTO | undefined => {
-        return testWorkoutTemplatesDTO.find(temp => temp.metadata.clientId === workoutTemplateClientId);
+    const handlePlayPress = (workoutTemplate: WorkoutTemplateDTO | null) => {
+        console.log("Starting session" + JSON.stringify(workoutTemplate));
     };
 
     return (
@@ -84,8 +62,8 @@ export default function MesocyclesScreen() {
                     decelerationRate="fast"
                     showsHorizontalScrollIndicator={false}
                 >
-                    {getActiveMesocycleTemplates().map((mesoTemp, index) => {
-                        const template = getWorkoutTemplate(mesoTemp.workoutTemplateClientId);
+                    {WorkoutUtils.getOrderedRemainingMesocycleTemplatesInActiveMesocycle().map((mesoTemp, index) => {
+                        const template = WorkoutUtils.getWorkoutTemplate(mesoTemp.workoutTemplateClientId);
 
                         return (
                             <View key={index} style={[styles.carouselCardPage, { width: screenWidth }]}>
@@ -95,10 +73,10 @@ export default function MesocyclesScreen() {
                                     title={template?.name || ""}
                                     subtitle={
                                         template?.templateExercises
-                                            ? `${template.templateExercises.map(tempEx => testExercisesDTO.find(ex => ex.metadata.clientId === tempEx.exerciseClientId)).filter(Boolean).flatMap(ex => ex!.muscleGroups).filter((group, index, self) => self.indexOf(group) === index).join(' • ')} - ${template.templateExercises.length} Exercises${template?.notes ? `\n${template.notes}` : ""}`
+                                            ? `${template.templateExercises.map(tempEx => WorkoutUtils.getExercises().find(ex => ex.metadata.clientId === tempEx.exerciseClientId)).filter(Boolean).flatMap(ex => ex!.muscleGroups).filter((group, index, self) => self.indexOf(group) === index).join(' • ')} - ${template.templateExercises.length} Exercises${template?.notes ? `\n${template.notes}` : ""}`
                                             : `${template?.templateExercises?.length || 0} Exercises${template?.notes ? `\n${template.notes}` : ""}`
                                     }
-                                    onPlayPress={handlePlayPress}
+                                    onPlayPress={() => handlePlayPress(template)}
                                 />
                             </View>
                         );
@@ -108,7 +86,6 @@ export default function MesocyclesScreen() {
                 {modals.addMesocycle?.isOpen &&
                     <MesocycleModal
                         visible={modals.addMesocycle.isOpen}
-                        initialDate={modals.addMesocycle.initialDate}
                         onSave={handleSavePress}
                         onClose={() => modalControls.closeModal("addMesocycle")}
                     />
@@ -120,6 +97,13 @@ export default function MesocyclesScreen() {
                         initialData={modals.editMesocycle.mesocycle}
                         onSave={handleSavePress}
                         onClose={() => modalControls.closeModal("editMesocycle")}
+                    />
+                }
+
+                {modals.mesocyclesHistory?.isOpen &&
+                    <MesocycleHistoryModal
+                        visible={modals.mesocyclesHistory?.isOpen}
+                        onClose={() => modalControls.closeModal("mesocyclesHistory")}
                     />
                 }
             </View>

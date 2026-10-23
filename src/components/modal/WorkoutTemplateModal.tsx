@@ -12,14 +12,15 @@ import {
 import * as Crypto from 'expo-crypto';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector } from "@/store/store";
-import { WorkoutTemplateDTO, TemplateExerciseDTO, ExerciseDTO } from "@/types/workout";
+import { WorkoutTemplateDTO, TemplateExerciseDTO } from "@/types/workout";
 import useModals from "@/hooks/useModals";
 import TemplateExerciseModal from "@/components/modal/TemplateExerciseModal";
+import WorkoutUtils from "@/utils/Storage";
 
 interface WorkoutTemplateModalProps {
     visible: boolean;
     initialData?: WorkoutTemplateDTO | null;
-    exercisesList: ExerciseDTO[];
+    templates: WorkoutTemplateDTO[];
     onSave: (data: WorkoutTemplateDTO) => void;
     onDelete?: (clientId: string) => void;
     onClose: () => void;
@@ -28,7 +29,7 @@ interface WorkoutTemplateModalProps {
 export default function WorkoutTemplateModal({
                                                  visible,
                                                  initialData,
-                                                 exercisesList,
+                                                 templates,
                                                  onSave,
                                                  onDelete,
                                                  onClose
@@ -46,7 +47,7 @@ export default function WorkoutTemplateModal({
         if (initialData) {
             setTitle(initialData.name || '');
             setNotes(initialData.notes || '');
-            setTemplateExercises((initialData as any).templateExercises || []);
+            setTemplateExercises(initialData?.templateExercises || []);
         } else {
             setTitle('');
             setNotes('');
@@ -61,9 +62,14 @@ export default function WorkoutTemplateModal({
             return;
         }
 
-        const metadata = initialData?.metadata || {
-            clientId: Crypto.randomUUID(),
-            createdAt: new Date().toISOString(),
+        if (templates.find(template => template.metadata.clientId !== initialData?.metadata.clientId && template.name.toLowerCase() === title.toLowerCase())) {
+            setError('Workout name already exists');
+            return;
+        }
+
+        const metadata = {
+            id: initialData?.metadata.id,
+            clientId: initialData?.metadata.clientId || Crypto.randomUUID(),
         };
 
         onSave({
@@ -121,7 +127,7 @@ export default function WorkoutTemplateModal({
     };
 
     const getExerciseName = (exerciseId: string) => {
-        const found = exercisesList.find(e => e.metadata.clientId === exerciseId);
+        const found = WorkoutUtils.getExercisesIncludingDeleted().find(exercise => exercise.metadata.clientId == exerciseId);
         return found ? found.name : `Exercise #${exerciseId}`;
     };
 
