@@ -36,6 +36,7 @@ export default function TemplateExerciseModal({
 
     const [selectedExerciseId, setSelectedExerciseId] = useState<string>();
     const [searchQuery, setSearchQuery] = useState('');
+    const [warmupSets, setWarmupSets] = useState<string>('0');
     const [targetSets, setTargetSets] = useState<string>('3');
     const [targetRepetitionsMin, setTargetRepetitionsMin] = useState<string>('8');
     const [targetRepetitionsMax, setTargetRepetitionsMax] = useState<string>('12');
@@ -154,15 +155,30 @@ export default function TemplateExerciseModal({
                             </ScrollView>
                         </View>
 
-                        <Text style={styles.label}>Target Sets *</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="e.g. 3"
-                            placeholderTextColor="#555"
-                            keyboardType="numeric"
-                            value={targetSets}
-                            onChangeText={(val) => { setTargetSets(val); setError(''); }}
-                        />
+                        <View style={styles.rowInputs}>
+                            <View style={styles.halfInputContainer}>
+                                <Text style={styles.label}>Warmup Sets</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="e.g. 0"
+                                    placeholderTextColor="#555"
+                                    keyboardType="numeric"
+                                    value={warmupSets}
+                                    onChangeText={(val) => { setWarmupSets(val); setError(''); }}
+                                />
+                            </View>
+                            <View style={styles.halfInputContainer}>
+                                <Text style={styles.label}>Target Sets *</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="e.g. 3"
+                                    placeholderTextColor="#555"
+                                    keyboardType="numeric"
+                                    value={targetSets}
+                                    onChangeText={(val) => { setTargetSets(val); setError(''); }}
+                                />
+                            </View>
+                        </View>
 
                         <View style={styles.rowInputs}>
                             <View style={styles.halfInputContainer}>

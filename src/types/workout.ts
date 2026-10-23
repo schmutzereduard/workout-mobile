@@ -1,12 +1,3 @@
-export interface SyncMetadata {
-    id?: number;
-    clientId: string;
-
-    createdAt: string;
-    updatedAt?: string;
-    deletedAt?: string;
-}
-
 export type MuscleGroupName =
     | 'Back'
     | 'Chest'
@@ -20,16 +11,34 @@ export type MuscleGroupName =
     | 'Hamstrings'
     | 'Calves';
 
+export type ExerciseSetType =
+    | 'Warmup'
+    | 'Working';
+
+export type UserInfoGender =
+    | 'Male'
+    | 'Female';
+
+export interface SyncMetadata {
+    id?: number;
+    clientId: string;
+
+    createdAt: string;
+    updatedAt?: string;
+    deletedAt?: string;
+}
+
 export interface ExerciseDTO {
     metadata: SyncMetadata;
     name: string;
     notes?: string;
-    muscleGroups: (MuscleGroupName | string)[];
+    muscleGroups: MuscleGroupName[];
 }
 
 export interface ExerciseSetDTO {
     id?: number;
     setNumber: number;
+    setType: ExerciseSetType;
     weight: number;
     targetRepetitions: number;
     actualRepetitions: number;
@@ -65,6 +74,7 @@ export interface TemplateExerciseDTO {
     exerciseId?: number;
     exerciseClientId?: string;
     exerciseOrder: number;
+    warmupSets?: number;
     targetSets: number;
     targetRepetitionsMin: number;
     targetRepetitionsMax: number;
@@ -82,7 +92,8 @@ export interface WorkoutExerciseDTO {
 
 export interface WorkoutDTO {
     metadata: SyncMetadata;
-    workoutTemplateId: number;
+    workoutTemplateId?: number;
+    workoutTemplateClientId?: string;
     name: string;
     notes?: string;
     isDeload?: boolean;
@@ -102,7 +113,7 @@ export interface UserInfoDTO {
     metadata: SyncMetadata;
     firstName: string;
     lastName: string;
-    gender: string;
+    gender: UserInfoGender;
     dateOfBirth: string;
     heightInCm: number;
     weightInKm: number;

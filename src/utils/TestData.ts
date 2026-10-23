@@ -1,4 +1,4 @@
-import {ExerciseDTO, MesocycleDTO, WorkoutTemplateDTO} from "@/types/workout";
+import {ExerciseDTO, MesocycleDTO, WorkoutDTO, WorkoutTemplateDTO} from "@/types/workout";
 
 export const testExercisesDTO: ExerciseDTO[] = [
     // Chest
@@ -188,3 +188,50 @@ export const testMesocyclesDTO: MesocycleDTO[] = [
         ]
     }
 ];
+
+export const testWorkoutsDTO: WorkoutDTO[] = [
+    {
+        metadata: {
+            clientId: "0001",
+            createdAt: "2026-10-23"
+        },
+        workoutTemplateClientId: "201",
+        name: "Push Day 2026-10-23",
+        completedAt: "2026-10-23",
+        exercises: [
+            {
+                metadata: {
+                    clientId: "00011",
+                    createdAt: "2026-10-23"
+                },
+                orderInWorkout: 1,
+                targetRepetitionsMin: 8,
+                targetRepetitionsMax: 12,
+                targetSets: 3,
+                exerciseSets: [
+                    {
+                        setNumber: 1,
+                        setType: "Working",
+                        targetRepetitions: 8,
+                        actualRepetitions: 8,
+                        weight: 10
+                    },
+                    {
+                        setNumber: 2,
+                        setType: "Working",
+                        targetRepetitions: 8,
+                        actualRepetitions: 8,
+                        weight: 10
+                    },
+                    {
+                        setNumber: 3,
+                        setType: "Working",
+                        targetRepetitions: 8,
+                        actualRepetitions: 8,
+                        weight: 10
+                    }
+                ]
+            }
+        ]
+    }
+]

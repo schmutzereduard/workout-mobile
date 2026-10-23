@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
     Modal,
     View,
@@ -16,6 +16,7 @@ import { MesocycleDTO, MesocycleTemplateDTO } from "@/types/workout";
 import {testMesocyclesDTO, testWorkoutTemplatesDTO} from "@/utils/TestData";
 import MesocycleTemplateModal from "@/components/modal/MesocycleTemplateModal";
 import useModals from "@/hooks/useModals";
+import ActionMenu, {AnchorRect} from "@/components/ActionMenu";
 
 interface MesocycleModalProps {
     visible: boolean;
@@ -37,6 +38,8 @@ export default function MesocycleModal({
     const { accentColor } = useAppSelector((state: any) => state.theme);
 
     const { modals, modalControls } = useModals();
+    const [menuAnchor, setMenuAnchor] = useState<AnchorRect | null>(null);
+    const headerButtonRef = useRef<View>(null);
 
     const [name, setName] = useState('');
     const [targetWeeks, setTargetWeeks] = useState('4');
@@ -83,6 +86,12 @@ export default function MesocycleModal({
         }
         setError('');
     }, [initialData, visible]);
+
+    const handleOpenHeaderMenu = () => {
+        headerButtonRef.current?.measureInWindow((x, y, width, height) => {
+            setMenuAnchor({ x, y, width, height });
+        });
+    };
 
     const getNextWeekAndDay = () => {
         if (scheduledWorkouts.length === 0) return { week: 1, day: 1 };
@@ -133,7 +142,7 @@ export default function MesocycleModal({
                 resequenced.push({
                     ...item,
                     weekNumber: weekNum,
-                    dayNumber: dayIndex + 1, // Reset days to 1, 2, 3... within this week
+                    dayNumber: dayIndex + 1,
                 });
             });
         });
@@ -231,7 +240,6 @@ export default function MesocycleModal({
             return;
         }
 
-        // Find the highest week number currently scheduled
         const maxWeek = Math.max(...scheduledWorkouts.map(w => w.weekNumber));
         const targetWeeksNum = parseInt(targetWeeks, 10) || 4;
 
@@ -242,13 +250,11 @@ export default function MesocycleModal({
 
         const nextWeekNumber = maxWeek + 1;
 
-        // Grab all templates belonging to the latest week
         const lastWeekTemplates = scheduledWorkouts.filter(w => w.weekNumber === maxWeek);
 
-        // Duplicate them with the new weekNumber
         const duplicatedTemplates: MesocycleTemplateDTO[] = lastWeekTemplates.map(item => ({
             ...item,
-            id: undefined, // Clear id so backend/state treats it as a new slot entry
+            id: undefined,
             weekNumber: nextWeekNumber,
         }));
 
@@ -331,26 +337,13 @@ export default function MesocycleModal({
                         <View style={styles.sectionHeaderRow}>
                             <Text style={styles.label}>Scheduled Templates ({scheduledWorkouts.length})</Text>
 
-                            <View style={styles.headerButtonRow}>
-                                <TouchableOpacity
-                                    style={[styles.addSlotHeaderBtn, { borderColor: '#555' }]}
-                                    onPress={handleRepeatLastWeek}
-                                >
-                                    <Ionicons name="copy-outline" size={14} color="#AAA" />
-                                    <Text style={[styles.addSlotHeaderText, { color: '#AAA' }]}>Repeat Week</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.addSlotHeaderBtn, { borderColor: accentColor }]}
-                                    press-feedback="none"
-                                    onPress={() => {
-                                        setEditingTemplateIndex(null);
-                                        modalControls.openModal("addTemplate");
-                                    }}
-                                >
-                                    <Ionicons name="add" size={16} color={accentColor} />
-                                    <Text style={[styles.addSlotHeaderText, { color: accentColor }]}>Add Workout</Text>
-                                </TouchableOpacity>
-                            </View>
+                            <TouchableOpacity
+                                ref={headerButtonRef}
+                                style={styles.headerOptionsButton}
+                                onPress={handleOpenHeaderMenu}
+                            >
+                                <Ionicons name="ellipsis-horizontal" size={18} color="#AAA" />
+                            </TouchableOpacity>
                         </View>
 
                         {scheduledWorkouts.length > 0 && (
@@ -427,6 +420,28 @@ export default function MesocycleModal({
                     onClose={() => modalControls.closeModal("addTemplate")}
                 />
             )}
+
+            <ActionMenu
+                visible={menuAnchor !== null}
+                anchorRect={menuAnchor}
+                onClose={() => setMenuAnchor(null)}
+                items={[
+                    {
+                        label: 'Add Workout',
+                        icon: 'add-outline',
+                        color: accentColor,
+                        onPress: () => {
+                            setEditingTemplateIndex(null);
+                            modalControls.openModal("addTemplate");
+                        },
+                    },
+                    {
+                        label: 'Repeat Week',
+                        icon: 'copy-outline',
+                        onPress: handleRepeatLastWeek,
+                    },
+                ]}
+            />
         </Modal>
     );
 }
@@ -511,24 +526,8 @@ const styles = StyleSheet.create({
         marginTop: 14,
         marginBottom: 6,
     },
-    headerButtonRow: {
-        flexDirection: 'column',
-        gap: 8,
-        alignItems: 'center',
-    },
-    addSlotHeaderBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 8,
-        borderWidth: 1,
-        backgroundColor: '#2A2A2A',
-    },
-    addSlotHeaderText: {
-        fontSize: 12,
-        fontWeight: '700',
+    headerOptionsButton: {
+        paddingHorizontal: 16
     },
     slotsList: {
         marginTop: 8,
