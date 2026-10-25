@@ -58,7 +58,6 @@ export default function ExercisesScreen() {
 
     const handleDeleteExercise = (id: string) => {
         WorkoutUtils.deleteExercises(Array.of(id));
-        ;
     };
 
     const handleLongPressCard = (id: string) => {
@@ -87,6 +86,7 @@ export default function ExercisesScreen() {
 
     const filteredExercises = exercises.filter(item =>
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.variation?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.muscleGroups.map(item => item.toLowerCase()).includes(searchQuery.toLowerCase()) ||
         item.notes?.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -131,8 +131,8 @@ export default function ExercisesScreen() {
                         const isSelected = selectedIds.includes(item.metadata.clientId);
                         return (
                             <GenericCard
-                                header={item.muscleGroups.join(",")}
-                                title={item.name}
+                                header={item.muscleGroups.join(" • ")}
+                                title={item.name + (item.variation ? ` • ${item.variation}` : "")}
                                 subtitle={item.notes}
                                 selectable={isSelectionMode}
                                 selected={isSelected}
@@ -179,7 +179,7 @@ export default function ExercisesScreen() {
             {modals.editExercise?.isOpen &&
                 <ExerciseModal
                     visible={modals.editExercise.isOpen}
-                    initialData={WorkoutUtils.getExercise(modals.editExercise.exerciseId)}
+                    initialData={exercises.find(exercise => exercise.metadata.clientId === modals.editExercise.exerciseId)}
                     exercises={exercises}
                     onSave={handleEditExercise}
                     onDelete={handleDeleteExercise}

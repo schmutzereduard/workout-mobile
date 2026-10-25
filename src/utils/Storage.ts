@@ -20,7 +20,7 @@ export const StorageKeys = {
     LAST_SYNC_TIMESTAMP: 'last_sync_timestamp',
 } as const;
 
-const storage = createMMKV();
+export const storage = createMMKV();
 
 class WorkoutUtils {
 
@@ -62,6 +62,14 @@ class WorkoutUtils {
 
     static editExercise(exercise: ExerciseDTO): void {
 
+        const exercises = this.getExercises();
+        const existing = exercises.find(ex => ex.metadata.clientId === exercise.metadata.clientId);
+        if (!existing)
+            return;
+
+        if (!this.hasObjectChanged(existing, exercise))
+            return;
+
         const metadata: SyncMetadata = {
             ...exercise.metadata,
             updatedAt: new Date().toISOString()
@@ -70,7 +78,7 @@ class WorkoutUtils {
             ...exercise,
             metadata: metadata
         }
-        const newExercises = this.getExercises().map(
+        const newExercises = exercises.map(
             existing => existing.metadata.clientId === updatedExercise.metadata.clientId ? updatedExercise : existing);
         storage.set(StorageKeys.EXERCISES, JSON.stringify(newExercises));
     };
@@ -102,6 +110,14 @@ class WorkoutUtils {
         return parsed.filter(workoutTemplate => !workoutTemplate.metadata.deletedAt);
     };
 
+    static getWorkoutTemplatesIncludingDeleted(): WorkoutTemplateDTO[] {
+        const workoutTemplates = storage.getString(StorageKeys.WORKOUT_TEMPLATES);
+        if (!workoutTemplates)
+            return [];
+
+        return JSON.parse(workoutTemplates);
+    };
+
     static getWorkoutTemplate(workoutTemplateClientId: string): WorkoutTemplateDTO | null {
         return this.getWorkoutTemplates().find(workoutTemplate => workoutTemplate.metadata.clientId === workoutTemplateClientId && !workoutTemplate.metadata.deletedAt) || null;
     }
@@ -121,6 +137,15 @@ class WorkoutUtils {
     };
 
     static editWorkoutTemplate(workoutTemplate: WorkoutTemplateDTO): void {
+
+        const workoutTemplates = this.getWorkoutTemplates();
+        const existing = workoutTemplates.find(wt => wt.metadata.deletedAt === workoutTemplate.metadata.clientId);
+        if (!existing)
+            return;
+
+        if (!this.hasObjectChanged(existing, workoutTemplate))
+            return;
+
         const metadata: SyncMetadata = {
             ...workoutTemplate.metadata,
             updatedAt: new Date().toISOString()
@@ -129,20 +154,21 @@ class WorkoutUtils {
             ...workoutTemplate,
             metadata: metadata
         }
-        const newWorkoutTemplates = this.getWorkoutTemplates().map(
+        const newWorkoutTemplates = workoutTemplates.map(
             existing => existing.metadata.clientId === updatedWorkoutTemplate.metadata.clientId ? updatedWorkoutTemplate : existing);
         storage.set(StorageKeys.WORKOUT_TEMPLATES, JSON.stringify(newWorkoutTemplates));
     };
 
     static deleteWorkoutTemplates(workoutTemplateIds: string[]): void {
-        const newWorkoutTemplates = this.getWorkoutTemplates().map(existing => {
+        const newWorkoutTemplates = this.getWorkoutTemplatesIncludingDeleted().map(existing => {
             if (workoutTemplateIds.includes(existing.metadata.clientId)) {
                 return {
                     ...existing,
                     metadata: {
                         ...existing.metadata,
                         deletedAt: new Date().toISOString()
-                    }
+                    },
+                    name: existing.name + " (Deleted)"
                 };
             }
             return existing;
@@ -177,6 +203,19 @@ class WorkoutUtils {
         return this.getWorkouts().find(workout => workout.metadata.clientId === workoutClientId) || null;
     };
 
+    static getWorkoutByDate(date: string): WorkoutDTO | null {
+        const workouts = this.getWorkouts();
+        if (!workouts) return null;
+
+        return workouts.find(workout => {
+            if (!workout.completedAt) return false;
+
+            const workoutDateOnly = workout.completedAt.split('T')[0];
+
+            return workoutDateOnly === date;
+        }) || null;
+    };
+
     static getWorkoutExercises(workoutClientId: string): WorkoutExerciseDTO[] {
         return this.getWorkouts().find(workout => workout.metadata.clientId === workoutClientId)?.exercises || [];
     };
@@ -203,9 +242,26 @@ class WorkoutUtils {
     }
 
     static getActiveMesocycle(): MesocycleDTO | null {
-
         const todayDate = new Date().toISOString().split('T')[0];
-        return this.getMesocycles().find(mesocycleDTO => todayDate >= mesocycleDTO.startDate && todayDate <= mesocycleDTO.endDate) || null;
+        const mesocycles = this.getMesocycles();
+
+        if (!mesocycles || mesocycles.length === 0) {
+            return null;
+        }
+
+        const currentMesocycle = mesocycles.find(
+            mesocycleDTO => todayDate >= mesocycleDTO.startDate && todayDate <= mesocycleDTO.endDate
+        );
+
+        if (currentMesocycle) {
+            return currentMesocycle;
+        }
+
+        const upcomingMesocycles = mesocycles
+            .filter(mesocycleDTO => mesocycleDTO.startDate > todayDate)
+            .sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+        return upcomingMesocycles.length > 0 ? upcomingMesocycles[0] : null;
     };
 
     static getCompletedWorkoutsInMesocycle(mesocycleClientId: string): WorkoutDTO[] {
@@ -259,6 +315,55 @@ class WorkoutUtils {
                 }
                 return (a.dayNumber || 0) - (b.dayNumber || 0);
             });
+    };
+
+    static addMesocycle(mesocycle: MesocycleDTO): void {
+
+        const metadata: SyncMetadata = {
+            ...mesocycle.metadata,
+            createdAt: new Date().toISOString()
+        }
+        const newMesocycle: MesocycleDTO = {
+            ...mesocycle,
+            metadata: metadata
+        }
+        const mesocycles = this.getMesocycles();
+        const newMesocycles = [...mesocycles, newMesocycle];
+        storage.set(StorageKeys.MESOCYCLES, JSON.stringify(newMesocycles));
+    }
+
+    static editMesocycle(mesocycle: MesocycleDTO): void {
+
+        const mesocycles = this.getMesocycles();
+        const existing = mesocycles.find(meso => meso.metadata.clientId === mesocycle.metadata.clientId);
+        if (!existing)
+            return;
+
+        if (!this.hasObjectChanged(existing, mesocycle))
+            return;
+
+        const metadata: SyncMetadata = {
+            ...mesocycle.metadata,
+            updatedAt: new Date().toISOString()
+        }
+        const updatedMesocycle: MesocycleDTO = {
+            ...mesocycle,
+            metadata: metadata
+        }
+        const newMesocycles = mesocycles.map(
+            existing => existing.metadata.clientId === updatedMesocycle.metadata.clientId ? updatedMesocycle : existing);
+        storage.set(StorageKeys.MESOCYCLES, JSON.stringify(newMesocycles));
+    };
+
+    private static hasObjectChanged<T extends { metadata?: any }>(existing: T, incoming: T): boolean {
+
+        if (existing === null)
+            return false;
+
+        const { metadata: _, ...existingData } = existing;
+        const { metadata: __, ...incomingData } = incoming;
+
+        return JSON.stringify(existingData) !== JSON.stringify(incomingData);
     };
 }
 

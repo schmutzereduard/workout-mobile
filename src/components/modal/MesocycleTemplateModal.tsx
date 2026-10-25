@@ -17,6 +17,7 @@ import WorkoutUtils from "@/utils/Storage";
 
 interface MesocycleTemplateModalProps {
     visible: boolean;
+    mesocycleClientId: string;
     existingSlots: MesocycleTemplateDTO[];
     initialData?: MesocycleTemplateDTO;
     defaultWeek: number;
@@ -27,6 +28,7 @@ interface MesocycleTemplateModalProps {
 
 export default function MesocycleTemplateModal({
                                                    visible,
+                                                   mesocycleClientId,
                                                    existingSlots,
                                                    initialData,
                                                    defaultWeek,
@@ -90,7 +92,7 @@ export default function MesocycleTemplateModal({
         const templateSlot: MesocycleTemplateDTO = {
             id: initialData?.id,
             clientId: initialData?.clientId || Crypto.randomUUID(),
-            mesocycleClientId: initialData?.mesocycleClientId || Crypto.randomUUID(),
+            mesocycleClientId: mesocycleClientId,
             workoutTemplateClientId: selectedTemplateClientId,
             weekNumber: parsedWeek,
             dayNumber: parsedDay,
@@ -134,16 +136,15 @@ export default function MesocycleTemplateModal({
                             <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={true}>
                                 {filteredTemplates.length > 0 ? (
                                     filteredTemplates.map((template) => {
-                                        const tId = template.metadata?.id || template.metadata?.clientId;
                                         const isSelected = selectedTemplateClientId === template.metadata?.clientId;
                                         return (
                                             <TouchableOpacity
-                                                key={template.metadata?.clientId || tId}
+                                                key={template.metadata?.clientId}
                                                 style={[
                                                     styles.optionRow,
                                                     isSelected && { backgroundColor: accentColor, borderColor: accentColor }
                                                 ]}
-                                                onPress={() => setSelectedExerciseIdOrTemplate(template, tId)}
+                                                onPress={() => handleSelectTemplate(template)}
                                             >
                                                 <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
                                                     {template.name}
@@ -164,26 +165,26 @@ export default function MesocycleTemplateModal({
 
                         <View style={styles.rowInputs}>
                             <View style={styles.halfInputContainer}>
-                                <Text style={styles.label}>Week # *</Text>
+                                <Text style={styles.label}>Week (Calculated)</Text>
                                 <TextInput
                                     style={styles.input}
                                     placeholder="1"
                                     placeholderTextColor="#555"
                                     keyboardType="numeric"
                                     value={weekNumber}
-                                    onChangeText={(val) => { setWeekNumber(val); setError(''); }}
+                                    editable={false}
                                 />
                             </View>
 
                             <View style={styles.halfInputContainer}>
-                                <Text style={styles.label}>Day # (1-7) *</Text>
+                                <Text style={styles.label}>Day (Calculated)</Text>
                                 <TextInput
                                     style={styles.input}
                                     placeholder="1"
                                     placeholderTextColor="#555"
                                     keyboardType="numeric"
                                     value={dayNumber}
-                                    onChangeText={(val) => { setDayNumber(val); setError(''); }}
+                                    editable={false}
                                 />
                             </View>
                         </View>
@@ -210,10 +211,10 @@ export default function MesocycleTemplateModal({
         </Modal>
     );
 
-    function setSelectedExerciseIdOrTemplate(template: WorkoutTemplateDTO, tId: any) {
-        setSelectedTemplateClientId(template.metadata?.clientId || tId);
+    function handleSelectTemplate(template: WorkoutTemplateDTO) {
+        setSelectedTemplateClientId(template.metadata?.clientId);
         setError('');
-    }
+    };
 }
 
 const styles = StyleSheet.create({

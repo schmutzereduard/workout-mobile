@@ -12,12 +12,12 @@ import {
 import * as Crypto from 'expo-crypto';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector } from "@/store/store";
-import {TemplateExerciseDTO, WorkoutTemplateDTO} from "@/types/workout";
+import {TemplateExerciseDTO} from "@/types/workout";
 import WorkoutUtils from "@/utils/Storage";
 
 interface TemplateExerciseModalProps {
     visible: boolean;
-    workoutTemplate?: WorkoutTemplateDTO;
+    workoutTemplateClientId : string;
     initialData?: TemplateExerciseDTO;
     onSave: (data: TemplateExerciseDTO) => void;
     onClose: () => void;
@@ -25,7 +25,7 @@ interface TemplateExerciseModalProps {
 
 export default function TemplateExerciseModal({
                                                   visible,
-                                                  workoutTemplate,
+                                                  workoutTemplateClientId,
                                                   initialData,
                                                   onSave,
                                                   onClose
@@ -33,13 +33,13 @@ export default function TemplateExerciseModal({
 
     const { accentColor } = useAppSelector((state: any) => state.theme);
 
-    const [selectedExerciseId, setSelectedExerciseId] = useState<string>();
-    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedExerciseId, setSelectedExerciseId] = useState<string>("");
+    const [searchQuery, setSearchQuery] = useState("");
     const [warmupSets, setWarmupSets] = useState<string>('0');
     const [targetSets, setTargetSets] = useState<string>('3');
     const [targetRepetitionsMin, setTargetRepetitionsMin] = useState<string>('8');
     const [targetRepetitionsMax, setTargetRepetitionsMax] = useState<string>('12');
-    const [error, setError] = useState('');
+    const [error, setError] = useState("");
 
     useEffect(() => {
         if (initialData) {
@@ -53,6 +53,8 @@ export default function TemplateExerciseModal({
 
     const filteredExercises = WorkoutUtils.getExercises().filter(ex =>
         ex.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ex.variation?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ex.notes?.toLowerCase().includes(searchQuery) ||
         ex.muscleGroups.map(item => item.toLowerCase()).includes(searchQuery.toLowerCase())
     );
 
@@ -75,12 +77,12 @@ export default function TemplateExerciseModal({
         }
 
         const templateExercise: TemplateExerciseDTO = {
+            id: initialData?.id,
             clientId: initialData?.clientId || Crypto.randomUUID(),
-            workoutTemplateId: workoutTemplate?.metadata.id,
-            workoutTemplateClientId: workoutTemplate?.metadata.clientId,
-            exerciseId: WorkoutUtils.getExercises().find(ex => ex.metadata.clientId === selectedExerciseId)?.metadata.id,
+            workoutTemplateClientId: workoutTemplateClientId,
+            exerciseId: WorkoutUtils.getExercise(selectedExerciseId)?.metadata.id,
             exerciseClientId: selectedExerciseId,
-            exerciseOrder: initialData?.exerciseOrder ?? ((workoutTemplate?.templateExercises?.length ?? 0) + 1),
+            exerciseOrder: initialData?.exerciseOrder ?? ((WorkoutUtils.getWorkoutTemplate(workoutTemplateClientId)?.templateExercises?.length ?? 0) + 1),
             targetSets: parsedSets,
             targetRepetitionsMin: parsedMin,
             targetRepetitionsMax: parsedMax,
@@ -137,10 +139,10 @@ export default function TemplateExerciseModal({
                                                     styles.exerciseOption,
                                                     isSelected && { backgroundColor: accentColor, borderColor: accentColor }
                                                 ]}
-                                                onPress={() => setSelectedExerciseId(exercise.metadata.clientId!)}
+                                                onPress={() => setSelectedExerciseId(exercise.metadata.clientId)}
                                             >
                                                 <Text style={[styles.exerciseOptionText, isSelected && styles.exerciseOptionTextSelected]}>
-                                                    {exercise.name}
+                                                    {exercise.name + (exercise.variation ? ` • ${exercise.variation}` : "")}
                                                 </Text>
                                                 <Text style={[styles.exerciseSubText, isSelected && styles.exerciseSubTextSelected]}>
                                                     {Array.isArray(exercise.muscleGroups) ? exercise.muscleGroups.join(', ') : exercise.muscleGroups}
@@ -163,7 +165,7 @@ export default function TemplateExerciseModal({
                                     placeholderTextColor="#555"
                                     keyboardType="numeric"
                                     value={warmupSets}
-                                    onChangeText={(val) => { setWarmupSets(val); setError(''); }}
+                                    onChangeText={(val) => { setWarmupSets(val); setError(""); }}
                                 />
                             </View>
                             <View style={styles.halfInputContainer}>
@@ -174,7 +176,7 @@ export default function TemplateExerciseModal({
                                     placeholderTextColor="#555"
                                     keyboardType="numeric"
                                     value={targetSets}
-                                    onChangeText={(val) => { setTargetSets(val); setError(''); }}
+                                    onChangeText={(val) => { setTargetSets(val); setError(""); }}
                                 />
                             </View>
                         </View>
@@ -188,7 +190,7 @@ export default function TemplateExerciseModal({
                                     placeholderTextColor="#555"
                                     keyboardType="numeric"
                                     value={targetRepetitionsMin}
-                                    onChangeText={(val) => { setTargetRepetitionsMin(val); setError(''); }}
+                                    onChangeText={(val) => { setTargetRepetitionsMin(val); setError(""); }}
                                 />
                             </View>
 
@@ -200,7 +202,7 @@ export default function TemplateExerciseModal({
                                     placeholderTextColor="#555"
                                     keyboardType="numeric"
                                     value={targetRepetitionsMax}
-                                    onChangeText={(val) => { setTargetRepetitionsMax(val); setError(''); }}
+                                    onChangeText={(val) => { setTargetRepetitionsMax(val); setError(""); }}
                                 />
                             </View>
                         </View>

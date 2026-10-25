@@ -20,7 +20,6 @@ import WorkoutUtils from "@/utils/Storage";
 interface WorkoutTemplateModalProps {
     visible: boolean;
     initialData?: WorkoutTemplateDTO | null;
-    templates: WorkoutTemplateDTO[];
     onSave: (data: WorkoutTemplateDTO) => void;
     onDelete?: (clientId: string) => void;
     onClose: () => void;
@@ -29,31 +28,32 @@ interface WorkoutTemplateModalProps {
 export default function WorkoutTemplateModal({
                                                  visible,
                                                  initialData,
-                                                 templates,
                                                  onSave,
                                                  onDelete,
                                                  onClose
                                              }: WorkoutTemplateModalProps) {
-    const { accentColor } = useAppSelector((state: any) => state.theme);
-    const { modals, modalControls } = useModals();
 
-    const [title, setTitle] = useState('');
-    const [notes, setNotes] = useState('');
+    const [workoutTemplateId, setWorkoutTemplateId] = useState<string>("");
+
+    const { accentColor } = useAppSelector((state: any) => state.theme);
+
+    const [title, setTitle] = useState("");
+    const [notes, setNotes] = useState("");
     const [templateExercises, setTemplateExercises] = useState<TemplateExerciseDTO[]>([]);
-    const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
-    const [error, setError] = useState('');
+    const [error, setError] = useState("");
+    
+    const { modals, modalControls } = useModals();
 
     useEffect(() => {
         if (initialData) {
-            setTitle(initialData.name || '');
-            setNotes(initialData.notes || '');
+            setWorkoutTemplateId(initialData.metadata.clientId);
+            setTitle(initialData.name);
+            setNotes(initialData.notes || "");
             setTemplateExercises(initialData?.templateExercises || []);
         } else {
-            setTitle('');
-            setNotes('');
-            setTemplateExercises([]);
+            setWorkoutTemplateId(Crypto.randomUUID);
         }
-        setError('');
+        setError("");
     }, [initialData, visible]);
 
     const handleSavePress = () => {
@@ -62,21 +62,33 @@ export default function WorkoutTemplateModal({
             return;
         }
 
-        if (templates.find(template => template.metadata.clientId !== initialData?.metadata.clientId && template.name.toLowerCase() === title.toLowerCase())) {
-            setError('Workout name already exists');
+        const exists = WorkoutUtils.getWorkoutTemplates().find(
+            template => 
+                template.metadata.clientId !== initialData?.metadata.clientId && 
+                template.name.toLowerCase() === title.toLowerCase()
+        );
+        if (exists) {
+            setError('Template name already exists');
             return;
         }
 
         const metadata = {
             id: initialData?.metadata.id,
-            clientId: initialData?.metadata.clientId || Crypto.randomUUID(),
+            clientId: workoutTemplateId,
         };
+
+        const linkedTemplates = templateExercises.map(templateExercise => {
+            return {
+                ...templateExercise,
+                workoutTemplateId: metadata.id,
+            }
+        });
 
         onSave({
             metadata,
             name: title.trim(),
             notes: notes.trim(),
-            templateExercises
+            templateExercises: linkedTemplates
         });
         onClose();
     };
@@ -88,13 +100,12 @@ export default function WorkoutTemplateModal({
 
     const handleEditExerciseSave = (updatedExercise: TemplateExerciseDTO) => {
         const updatedList = templateExercises.map(item =>
-            item.clientId === editingExerciseId
-                ? { ...updatedExercise, clientId: editingExerciseId, exerciseOrder: item.exerciseOrder }
+            item.clientId === updatedExercise.exerciseClientId
+                ? { ...updatedExercise, clientId: updatedExercise.clientId, exerciseOrder: item.exerciseOrder }
                 : item
         );
 
         setTemplateExercises(updatedList);
-        setEditingExerciseId(null);
         modalControls.closeModal("editTemplateExercise");
     };
 
@@ -127,8 +138,9 @@ export default function WorkoutTemplateModal({
     };
 
     const getExerciseName = (exerciseId: string) => {
-        const found = WorkoutUtils.getExercisesIncludingDeleted().find(exercise => exercise.metadata.clientId == exerciseId);
-        return found ? found.name : `Exercise #${exerciseId}`;
+        let exercises = WorkoutUtils.getExercisesIncludingDeleted();
+        const found = exercises.find(exercise => exercise.metadata.clientId == exerciseId);
+        return found ? found.name + (found.variation ? ` • ${found.variation}` : "") : `Deleted #${exerciseId}`;
     };
 
     const isEditMode = !!initialData?.metadata?.clientId;
@@ -166,7 +178,7 @@ export default function WorkoutTemplateModal({
                             placeholder="e.g. Upper Body A (Hypertrophy)"
                             placeholderTextColor="#555"
                             value={title}
-                            onChangeText={(val) => { setTitle(val); setError(''); }}
+                            onChangeText={(val) => { setTitle(val); setError(""); }}
                         />
 
                         <Text style={styles.label}>Description / Notes</Text>
@@ -198,10 +210,7 @@ export default function WorkoutTemplateModal({
                                         <TouchableOpacity
                                             key={index}
                                             style={styles.exerciseCard}
-                                            onPress={() => {
-                                                setEditingExerciseId(item.clientId || "");
-                                                modalControls.openModal("editTemplateExercise");
-                                            }}
+                                            onPress={() => modalControls.openModal("editTemplateExercise", { exerciseId: item.id })}
                                         >
                                             <View style={styles.exerciseCardInfo}>
                                                 <Text style={styles.exerciseNameText}>
@@ -280,6 +289,7 @@ export default function WorkoutTemplateModal({
                     {modals.addTemplateExercise?.isOpen &&
                         <TemplateExerciseModal
                             visible={modals.addTemplateExercise?.isOpen}
+                            workoutTemplateClientId={workoutTemplateId}
                             onSave={handleAddExerciseSave}
                             onClose={() => modalControls.closeModal("addTemplateExercise")}
                         />
@@ -288,13 +298,10 @@ export default function WorkoutTemplateModal({
                     {modals.editTemplateExercise?.isOpen &&
                         <TemplateExerciseModal
                             visible={modals.editTemplateExercise?.isOpen}
-                            workoutTemplate={initialData || undefined}
-                            initialData={templateExercises.find(item => item.clientId === editingExerciseId)}
+                            workoutTemplateClientId={workoutTemplateId}
+                            initialData={templateExercises.find(item => item.clientId === modals.editTemplateExercise.clientId)}
                             onSave={handleEditExerciseSave}
-                            onClose={() => {
-                                setEditingExerciseId(null);
-                                modalControls.closeModal("editTemplateExercise");
-                            }}
+                            onClose={() => modalControls.closeModal("editTemplateExercise")}
                         />
                     }
 

@@ -35,17 +35,20 @@ export default function ExerciseModal({
     const { accentColor } = useAppSelector((state: any) => state.theme);
 
     const [name, setName] = useState('');
+    const [variation, setVariation] = useState('');
     const [notes, setNotes] = useState('');
     const [selectedMuscles, setSelectedMuscles] = useState<MuscleGroupName[]>([]);
     const [error, setError] = useState('');
 
     useEffect(() => {
         if (initialData) {
-            setName(initialData.name || '');
-            setNotes(initialData.notes || '');
+            setName(initialData.name);
+            setVariation(initialData.variation || "");
+            setNotes(initialData.notes || "");
             setSelectedMuscles(initialData.muscleGroups || []);
         } else {
             setName('');
+            setVariation("");
             setNotes('');
             setSelectedMuscles([]);
         }
@@ -69,7 +72,12 @@ export default function ExerciseModal({
             setError('Select at least one muscle group');
             return;
         }
-        if (exercises.find(exercise => exercise.metadata.clientId !== initialData?.metadata.clientId && exercise.name.toLowerCase() === name.toLowerCase())) {
+        const exists = exercises.find(
+            exercise =>
+                exercise.metadata.clientId !== initialData?.metadata.clientId &&
+                exercise.name.toLowerCase() === name.toLowerCase() &&
+                exercise.variation?.toLowerCase() === variation.toLowerCase());
+        if (exists) {
             setError('Exercise name already exists');
             return;
         }
@@ -82,6 +90,7 @@ export default function ExerciseModal({
         onSave({
             metadata,
             name: name.trim(),
+            variation: variation.trim(),
             notes: notes.trim(),
             muscleGroups: selectedMuscles
         });
@@ -119,7 +128,18 @@ export default function ExerciseModal({
                             placeholder="e.g. Barbell Bench Press"
                             placeholderTextColor="#555"
                             value={name}
+                            maxLength={50}
                             onChangeText={(val) => { setName(val); setError(''); }}
+                        />
+
+                        <Text style={styles.label}>Exercise Variation</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="e.g. Incline / Neutral Grip"
+                            placeholderTextColor="#555"
+                            value={variation}
+                            maxLength={50}
+                            onChangeText={(val) => { setVariation(val); setError(''); }}
                         />
 
                         <Text style={styles.label}>Notes / Cues</Text>
@@ -130,6 +150,7 @@ export default function ExerciseModal({
                             value={notes}
                             onChangeText={setNotes}
                             multiline
+                            maxLength={255}
                             numberOfLines={3}
                         />
 

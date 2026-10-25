@@ -7,40 +7,68 @@ import useModals from "@/hooks/useModals";
 import MesocycleModal from "@/components/modal/MesocycleModal";
 import {MesocycleDTO, WorkoutTemplateDTO} from "@/types/workout";
 import MesocycleHistoryModal from "@/components/modal/MesocycleHistoryModal";
-import WorkoutUtils from "@/utils/Storage";
+import WorkoutUtils, {storage, StorageKeys} from "@/utils/Storage";
+import ActionMenu, {AnchorRect} from "@/components/ActionMenu";
+import React, {useState} from "react";
+import AlertModal from "@/components/modal/AlertModal";
+import {useStorageListener} from "@/hooks/useStorageListener";
 
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function MesocyclesScreen() {
 
-    const { backgroundColor } = useAppSelector((state: any): any => state.theme);
+    const { backgroundColor, accentColor } = useAppSelector((state: any): any => state.theme);
     const { modals, modalControls } = useModals();
+
+    const [menuAnchor, setMenuAnchor] = useState<AnchorRect | null>(null);
 
     const handleHistoryPress = () => {
         modalControls.openModal("mesocyclesHistory")
     };
 
-    const handleAddPress = () => {
-        modalControls.openModal("addMesocycle");
+    const handleElipsisPress = () => {
+        setMenuAnchor({ x: screenWidth - 60, y: 100, width: 40, height: 40 });
     };
 
     const handleDatePress = (date: string) => {
-        //TODO -> Open View only workout
-        const existingMeso = WorkoutUtils.getMesocycles().find(meso => date >= meso.startDate && date <= meso.endDate);
-        if (existingMeso) {
-            modalControls.openModal("editMesocycle", { mesocycle: existingMeso })
-        } else {
-            modalControls.openModal("addMesocycle", { initialDate: date });
+        let workoutByDate = WorkoutUtils.getWorkoutByDate(date);
+        if (workoutByDate) {
+            modalControls.openModal("viewWorkout", { workout: workoutByDate });
         }
     };
 
-    const handleSavePress = (mesocycleData: MesocycleDTO) => {
-        console.log("Saving mesocycle: " + JSON.stringify(mesocycleData));
+    const handleAddPress = () => {
+        if (WorkoutUtils.getActiveMesocycle()) {
+            modalControls.openModal("addWarning");
+        } else {
+            modalControls.openModal("addMesocycle");
+        }
+    };
+
+    const handleEditPress = () => {
+        if (WorkoutUtils.getActiveMesocycle()) {
+            modalControls.openModal("editMesocycle");
+        } else {
+            modalControls.openModal("editWarning");
+        }
+    };
+
+    const handleAddMesocycle = (mesocycleData: MesocycleDTO) => {
+        WorkoutUtils.addMesocycle(mesocycleData);
+    };
+
+    const handleEditMesocycle = (mesocycleData: MesocycleDTO) => {
+        WorkoutUtils.editMesocycle(mesocycleData);
     };
 
     const handlePlayPress = (workoutTemplate: WorkoutTemplateDTO | null) => {
-        console.log("Starting session" + JSON.stringify(workoutTemplate));
+        console.log("Open workout page");
     };
+
+    let upcomingWorkouts = useStorageListener(
+        [StorageKeys.MESOCYCLES, StorageKeys.WORKOUT_TEMPLATES],
+        () => WorkoutUtils.getOrderedRemainingMesocycleTemplatesInActiveMesocycle()
+    );
 
     return (
         <ScrollView style={[styles.container, { backgroundColor }]}>
@@ -51,7 +79,7 @@ export default function MesocyclesScreen() {
 
             <View style={styles.content}>
                 <MesocycleCalendar
-                    onAddPress={handleAddPress}
+                    onElipsisPress={handleElipsisPress}
                     onSelectDate={handleDatePress}
                 />
 
@@ -62,21 +90,31 @@ export default function MesocyclesScreen() {
                     decelerationRate="fast"
                     showsHorizontalScrollIndicator={false}
                 >
-                    {WorkoutUtils.getOrderedRemainingMesocycleTemplatesInActiveMesocycle().map((mesoTemp, index) => {
-                        const template = WorkoutUtils.getWorkoutTemplate(mesoTemp.workoutTemplateClientId);
+                    {upcomingWorkouts.map((mesoTemp, index) => {
+                        const template = WorkoutUtils.getWorkoutTemplatesIncludingDeleted().find(
+                            workoutTemplate=> workoutTemplate.metadata.clientId === mesoTemp.workoutTemplateClientId
+                        );
+
+                        if (!template)
+                            return null;
+
+                        const isDeleted = template.metadata.deletedAt;
 
                         return (
                             <View key={index} style={[styles.carouselCardPage, { width: screenWidth }]}>
                                 <GenericCard
                                     style={styles.carouselCard}
-                                    header={(index === 0 ? "NEXT-UP - " : "") + `Week ${mesoTemp.weekNumber} • Day ${mesoTemp.dayNumber}`}
-                                    title={template?.name || ""}
+                                    header={(index === 0 ? "NEXT-UP - " : "") + `Week ${mesoTemp.weekNumber} Day ${mesoTemp.dayNumber}`}
+                                    title={template.name}
                                     subtitle={
-                                        template?.templateExercises
-                                            ? `${template.templateExercises.map(tempEx => WorkoutUtils.getExercises().find(ex => ex.metadata.clientId === tempEx.exerciseClientId)).filter(Boolean).flatMap(ex => ex!.muscleGroups).filter((group, index, self) => self.indexOf(group) === index).join(' • ')} - ${template.templateExercises.length} Exercises${template?.notes ? `\n${template.notes}` : ""}`
-                                            : `${template?.templateExercises?.length || 0} Exercises${template?.notes ? `\n${template.notes}` : ""}`
+                                        isDeleted
+                                            ? "This workout template has been deleted."
+                                            : template?.templateExercises
+                                                ? `${template.templateExercises.map(tempEx => WorkoutUtils.getExercises().find(ex => ex.metadata.clientId === tempEx.exerciseClientId)).filter(Boolean).flatMap(ex => ex!.muscleGroups).filter((group, index, self) => self.indexOf(group) === index).join(' • ')}\n${template.templateExercises.length} Exercises${template?.notes ? `\n${template.notes}` : ""}`
+                                                : `0 Exercises${template?.notes ? `\n${template.notes}` : ""}`
                                     }
-                                    onPlayPress={() => handlePlayPress(template)}
+                                    // Conditionally pass onPlayPress as undefined if deleted, which hides or disables the play button
+                                    onPlayPress={isDeleted ? undefined : () => handlePlayPress(template)}
                                 />
                             </View>
                         );
@@ -86,7 +124,7 @@ export default function MesocyclesScreen() {
                 {modals.addMesocycle?.isOpen &&
                     <MesocycleModal
                         visible={modals.addMesocycle.isOpen}
-                        onSave={handleSavePress}
+                        onSave={handleAddMesocycle}
                         onClose={() => modalControls.closeModal("addMesocycle")}
                     />
                 }
@@ -94,8 +132,8 @@ export default function MesocyclesScreen() {
                 {modals.editMesocycle?.isOpen &&
                     <MesocycleModal
                         visible={modals.editMesocycle.isOpen}
-                        initialData={modals.editMesocycle.mesocycle}
-                        onSave={handleSavePress}
+                        initialData={WorkoutUtils.getActiveMesocycle()}
+                        onSave={handleEditMesocycle}
                         onClose={() => modalControls.closeModal("editMesocycle")}
                     />
                 }
@@ -106,6 +144,41 @@ export default function MesocyclesScreen() {
                         onClose={() => modalControls.closeModal("mesocyclesHistory")}
                     />
                 }
+
+                {modals.addWarning?.isOpen &&
+                    <AlertModal
+                        visible={modals.addWarning.isOpen}
+                        message={"There can only be 1 active mesocycles at a time"}
+                        onClose={() => modalControls.closeModal("addWarning")}
+                    />
+                }
+
+                {modals.editWarning?.isOpen &&
+                    <AlertModal
+                        visible={modals.editWarning.isOpen}
+                        message={"No active mesocycles present"}
+                        onClose={() => modalControls.closeModal("editWarning")}
+                    />
+                }
+
+                <ActionMenu
+                    visible={menuAnchor !== null}
+                    anchorRect={menuAnchor}
+                    onClose={() => setMenuAnchor(null)}
+                    items={[
+                        {
+                            label: 'Add Mesocycle',
+                            icon: 'add-outline',
+                            color: accentColor,
+                            onPress: handleAddPress,
+                        },
+                        {
+                            label: 'Edit Current',
+                            icon: 'pencil-sharp',
+                            onPress: handleEditPress,
+                        },
+                    ]}
+                />
             </View>
         </ScrollView>
     );

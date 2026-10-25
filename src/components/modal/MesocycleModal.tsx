@@ -16,7 +16,8 @@ import { MesocycleDTO, MesocycleTemplateDTO } from "@/types/workout";
 import MesocycleTemplateModal from "@/components/modal/MesocycleTemplateModal";
 import useModals from "@/hooks/useModals";
 import ActionMenu, {AnchorRect} from "@/components/ActionMenu";
-import WorkoutUtils from "@/utils/Storage";
+import WorkoutUtils, {StorageKeys} from "@/utils/Storage";
+import {useStorageListener} from "@/hooks/useStorageListener";
 
 interface MesocycleModalProps {
     visible: boolean;
@@ -33,22 +34,30 @@ export default function MesocycleModal({
                                            onDelete,
                                            onClose
                                        }: MesocycleModalProps) {
+
+
+
+    const [mesocycleClientId, setMesocycleClientId] = useState<string>("");
+
     const { accentColor } = useAppSelector((state: any) => state.theme);
 
     const { modals, modalControls } = useModals();
+
     const [menuAnchor, setMenuAnchor] = useState<AnchorRect | null>(null);
     const headerButtonRef = useRef<View>(null);
 
-    const [name, setName] = useState('');
-    const [targetWeeks, setTargetWeeks] = useState('');
-    const [deloadWeek, setDeloadWeek] = useState('');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
+    const [name, setName] = useState("");
+    const [targetWeeks, setTargetWeeks] = useState("6");
+    const [deloadWeek, setDeloadWeek] = useState("6");
+    const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
+    const [endDate, setEndDate] = useState("");
     const [scheduledWorkouts, setScheduledWorkouts] = useState<MesocycleTemplateDTO[]>([]);
+    const [error, setError] = useState("");
 
-    const [editingTemplateIndex, setEditingTemplateIndex] = useState<number | null>(null);
-
-    const [error, setError] = useState('');
+    const mesocycles = useStorageListener(
+        [StorageKeys.MESOCYCLES, StorageKeys.WORKOUT_TEMPLATES],
+        () => WorkoutUtils.getMesocycles()
+    );
 
     useEffect(() => {
 
@@ -69,6 +78,7 @@ export default function MesocycleModal({
 
     useEffect(() => {
         if (initialData) {
+            setMesocycleClientId(initialData.metadata.clientId);
             setName(initialData.name);
             setTargetWeeks(String(initialData.targetWeeks));
             setDeloadWeek(String(initialData.deloadWeek));
@@ -76,13 +86,9 @@ export default function MesocycleModal({
             setEndDate(initialData.endDate);
             setScheduledWorkouts(initialData.mesocycleTemplates || []);
         } else {
-            setName('');
-            setTargetWeeks('');
-            setDeloadWeek('');
-            setStartDate("");
-            setScheduledWorkouts([]);
+            setMesocycleClientId(Crypto.randomUUID());
         }
-        setError('');
+        setError("");
     }, [initialData, visible]);
 
     const handleOpenHeaderMenu = () => {
@@ -104,20 +110,17 @@ export default function MesocycleModal({
     };
 
     const handleSaveTemplateSlot = (slotData: MesocycleTemplateDTO) => {
-        if (editingTemplateIndex !== null) {
-            const updated = [...scheduledWorkouts];
-            updated[editingTemplateIndex] = {
-                ...updated[editingTemplateIndex],
-                workoutTemplateId: slotData.workoutTemplateId,
-                weekNumber: slotData.weekNumber,
-                dayNumber: slotData.dayNumber,
-            };
-            setScheduledWorkouts(updated);
-            setEditingTemplateIndex(null);
-        } else {
-            setScheduledWorkouts([...scheduledWorkouts, slotData]);
-        }
-        modalControls.closeModal("addTemplate");
+        setScheduledWorkouts(prev => {
+            const existsIndex = prev.findIndex(item => item.clientId === slotData.clientId);
+
+            if (existsIndex >= 0) {
+                const updated = [...prev];
+                updated[existsIndex] = slotData;
+                return updated;
+            } else {
+                return [...prev, slotData];
+            }
+        });
     };
 
     const handleRemoveScheduledWorkout = (index: number) => {
@@ -201,15 +204,29 @@ export default function MesocycleModal({
             setError('Start and end dates are required');
             return;
         }
-        if (WorkoutUtils.getMesocycles().find(meso => meso.metadata.clientId !== initialData?.metadata.clientId && endDate >= meso.startDate && endDate <= meso.endDate)) {
+
+        const exists = mesocycles.find(
+            meso =>
+                meso.metadata.clientId !== initialData?.metadata.clientId &&
+                startDate <= meso.endDate &&
+                endDate >= meso.startDate
+        );
+        if (exists) {
             setError('Mesocycle already exists in interval');
             return;
         }
 
-        const metadata = initialData?.metadata || {
-            clientId: Crypto.randomUUID(),
-            createdAt: new Date().toISOString(),
+        const metadata = {
+            id: initialData?.metadata.id,
+            clientId: mesocycleClientId,
         };
+
+        const linkedTemplates = scheduledWorkouts.map(mesocycleTemplate => {
+            return {
+                ...mesocycleTemplate,
+                mesocycleId: metadata.id
+            }
+        })
 
         const payload: MesocycleDTO = {
             metadata,
@@ -218,7 +235,7 @@ export default function MesocycleModal({
             deloadWeek: parseInt(deloadWeek, 10),
             startDate,
             endDate,
-            mesocycleTemplates: scheduledWorkouts,
+            mesocycleTemplates: linkedTemplates,
         };
 
         onSave(payload);
@@ -226,10 +243,10 @@ export default function MesocycleModal({
     };
 
     const getTemplateName = (templateClientId: string) => {
-        const found = WorkoutUtils.getWorkoutTemplates().find(
+        const found = WorkoutUtils.getWorkoutTemplatesIncludingDeleted().find(
             t => t.metadata?.clientId === String(templateClientId)
         );
-        return found ? found.name : `Template #${templateClientId}`;
+        return found ? found.name : `Deleted #${templateClientId}`;
     };
 
     const handleRepeatLastWeek = () => {
@@ -257,7 +274,7 @@ export default function MesocycleModal({
         }));
 
         setScheduledWorkouts([...scheduledWorkouts, ...duplicatedTemplates]);
-        setError('');
+        setError("");
     };
 
     const isEditMode = !!initialData?.metadata?.clientId;
@@ -287,7 +304,7 @@ export default function MesocycleModal({
                             placeholder="e.g. Hypertrophy Block 1"
                             placeholderTextColor="#555"
                             value={name}
-                            onChangeText={(val) => { setName(val); setError(''); }}
+                            onChangeText={(val) => { setName(val); setError(""); }}
                         />
 
                         <View style={styles.rowDates}>
@@ -325,7 +342,7 @@ export default function MesocycleModal({
                             <View style={styles.dateCol}>
                                 <Text style={styles.label}>{`End Date\n(Calculated)`}</Text>
                                 <TextInput
-                                    style={[styles.input, styles.disabledInput]}
+                                    style={styles.input}
                                     value={endDate}
                                     editable={false}
                                 />
@@ -406,6 +423,7 @@ export default function MesocycleModal({
             {modals.addTemplate?.isOpen && (
                 <MesocycleTemplateModal
                     visible={modals.addTemplate.isOpen}
+                    mesocycleClientId={mesocycleClientId}
                     existingSlots={scheduledWorkouts}
                     defaultWeek={nextDefaults.week}
                     defaultDay={nextDefaults.day}
@@ -417,6 +435,7 @@ export default function MesocycleModal({
             {modals.editTemplate?.isOpen && (
                 <MesocycleTemplateModal
                     visible={modals.editTemplate.isOpen}
+                    mesocycleClientId={mesocycleClientId}
                     existingSlots={scheduledWorkouts}
                     initialData={scheduledWorkouts[modals.editTemplate.templateIndex]}
                     defaultWeek={nextDefaults.week}
@@ -508,11 +527,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#3A3A3A',
         flex: 1,
-    },
-    disabledInput: {
-        backgroundColor: '#222',
-        color: '#777',
-        borderColor: '#2D2D2D',
     },
     rowDates: {
         flexDirection: 'row',

@@ -1,19 +1,27 @@
-import React, { useState } from 'react';
+import React, {useRef, useState} from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector } from "@/store/store";
-import {DAYS_NAMES_SHORT, MONTH_NAMES} from "@/utils/Constants";
+import { DAYS_NAMES_SHORT, MONTH_NAMES } from "@/utils/Constants";
 import { MesocycleDTO } from "@/types/workout";
-import WorkoutUtils from "@/utils/Storage";
+import WorkoutUtils, {StorageKeys} from "@/utils/Storage";
+import {useStorageListener} from "@/hooks/useStorageListener";
 
 interface MesocycleCalendarProps {
     onSelectDate?: (dateString: string, matchedMesocycle?: MesocycleDTO) => void;
-    onAddPress?: () => void;
+    onElipsisPress: () => void;
 }
 
-export default function MesocycleCalendar({ onSelectDate, onAddPress }: MesocycleCalendarProps) {
+export default function MesocycleCalendar({ onSelectDate, onElipsisPress }: MesocycleCalendarProps) {
+
     const { accentColor } = useAppSelector((state: any): any => state.theme);
     const [currentDate, setCurrentDate] = useState(new Date());
+    const calendarButtonRef = useRef<View>(null);
+
+    const mesocycles = useStorageListener(
+        StorageKeys.MESOCYCLES,
+        () => WorkoutUtils.getMesocycles()
+    );
 
     const prevMonth = () => {
         setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -42,7 +50,7 @@ export default function MesocycleCalendar({ onSelectDate, onAddPress }: Mesocycl
 
         const currentTime = new Date(dateString).getTime();
 
-        const matchedMesocycle = WorkoutUtils.getMesocycles().find(meso => {
+        const matchedMesocycle = mesocycles.find(meso => {
             const start = new Date(meso.startDate).getTime();
             const end = new Date(meso.endDate).getTime();
             return currentTime >= start && currentTime <= end;
@@ -74,9 +82,15 @@ export default function MesocycleCalendar({ onSelectDate, onAddPress }: Mesocycl
             <View style={styles.header}>
                 <Text style={styles.monthTitle}>{MONTH_NAMES[month]} {year}</Text>
                 <View style={styles.buttonsGroup}>
-                    <TouchableOpacity onPress={onAddPress} style={styles.addBtn}>
-                        <Ionicons name="add-outline" size={20} color="#FFF" />
-                    </TouchableOpacity>
+                    <View ref={calendarButtonRef} collapsable={false}>
+                        <TouchableOpacity
+                            style={styles.calendarOptionsButton}
+                            onPress={onElipsisPress}
+                        >
+                            <Ionicons name="ellipsis-horizontal" size={20} color="#FFF" />
+                        </TouchableOpacity>
+                    </View>
+
                     <TouchableOpacity onPress={prevMonth} style={styles.arrowBtn}>
                         <Ionicons name="chevron-back" size={20} color="#FFF" />
                     </TouchableOpacity>
@@ -131,6 +145,12 @@ const styles = StyleSheet.create({
         backgroundColor: '#333333',
         padding: 6,
         borderRadius: 8,
+    },
+    calendarOptionsButton: {
+        backgroundColor: '#333333',
+        padding: 6,
+        borderRadius: 8,
+        paddingHorizontal: 10
     },
     arrowBtn: {
         backgroundColor: '#333333',

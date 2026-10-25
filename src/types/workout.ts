@@ -31,6 +31,7 @@ export interface SyncMetadata {
 export interface ExerciseDTO {
     metadata: SyncMetadata;
     name: string;
+    variation?: string;
     notes?: string;
     muscleGroups: MuscleGroupName[];
 }

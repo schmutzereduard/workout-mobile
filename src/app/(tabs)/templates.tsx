@@ -184,7 +184,6 @@ export default function WorkoutTemplatesScreen() {
             {modals.addTemplate?.isOpen &&
                 <WorkoutTemplateModal
                     visible={modals.addTemplate.isOpen}
-                    templates={workoutTemplates}
                     onSave={handleAddTemplate}
                     onDelete={handleDeleteTemplate}
                     onClose={() => modalControls.closeModal("addTemplate")}
@@ -195,7 +194,6 @@ export default function WorkoutTemplatesScreen() {
                 <WorkoutTemplateModal
                     visible={modals.editTemplate.isOpen}
                     initialData={WorkoutUtils.getWorkoutTemplate(modals.editTemplate.templateId)}
-                    templates={workoutTemplates}
                     onSave={handleEditTemplate}
                     onDelete={handleDeleteTemplate}
                     onClose={() => modalControls.closeModal("editTemplate")}
