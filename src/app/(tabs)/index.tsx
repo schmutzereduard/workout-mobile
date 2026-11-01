@@ -2,22 +2,22 @@ import {StyleSheet, View, ScrollView, Dimensions} from 'react-native';
 import CustomHeader from '../../components/CustomHeader';
 import MesocycleCalendar from '../../components/MesocycleCalendar';
 import GenericCard from "@/components/GenericCard";
-import {useAppSelector} from "@/store/store";
+import { useAppSelector } from "@/store/store";
 import useModals from "@/hooks/useModals";
 import MesocycleModal from "@/components/modal/MesocycleModal";
-import {MesocycleDTO, WorkoutTemplateDTO} from "@/types/workout";
+import { MesocycleDTO, WorkoutTemplateDTO } from "@/types/workout";
 import MesocycleHistoryModal from "@/components/modal/MesocycleHistoryModal";
-import WorkoutUtils, {storage, StorageKeys} from "@/utils/Storage";
-import ActionMenu, {AnchorRect} from "@/components/ActionMenu";
-import React, {useState} from "react";
+import {WorkoutUtils, StorageKeys} from "@/utils/Storage";
+import ActionMenu, { AnchorRect } from "@/components/ActionMenu";
+import React, { useState } from "react";
 import AlertModal from "@/components/modal/AlertModal";
-import {useStorageListener} from "@/hooks/useStorageListener";
+import { useStorageListener } from "@/hooks/useStorageListener";
 
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function MesocyclesScreen() {
 
-    const { backgroundColor, accentColor } = useAppSelector((state: any): any => state.theme);
+    const { backgroundColor, accentColor } = useAppSelector((state: any): any => state.sync);
     const { modals, modalControls } = useModals();
 
     const [menuAnchor, setMenuAnchor] = useState<AnchorRect | null>(null);
@@ -113,7 +113,6 @@ export default function MesocyclesScreen() {
                                                 ? `${template.templateExercises.map(tempEx => WorkoutUtils.getExercises().find(ex => ex.metadata.clientId === tempEx.exerciseClientId)).filter(Boolean).flatMap(ex => ex!.muscleGroups).filter((group, index, self) => self.indexOf(group) === index).join(' • ')}\n${template.templateExercises.length} Exercises${template?.notes ? `\n${template.notes}` : ""}`
                                                 : `0 Exercises${template?.notes ? `\n${template.notes}` : ""}`
                                     }
-                                    // Conditionally pass onPlayPress as undefined if deleted, which hides or disables the play button
                                     onPlayPress={isDeleted ? undefined : () => handlePlayPress(template)}
                                 />
                             </View>

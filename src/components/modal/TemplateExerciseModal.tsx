@@ -13,7 +13,8 @@ import * as Crypto from 'expo-crypto';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector } from "@/store/store";
 import {TemplateExerciseDTO} from "@/types/workout";
-import WorkoutUtils from "@/utils/Storage";
+import {WorkoutUtils} from "@/utils/Storage";
+import NumberStepper from "@/components/NumberStepper";
 
 interface TemplateExerciseModalProps {
     visible: boolean;
@@ -31,22 +32,22 @@ export default function TemplateExerciseModal({
                                                   onClose
                                               }: TemplateExerciseModalProps) {
 
-    const { accentColor } = useAppSelector((state: any) => state.theme);
+    const { accentColor } = useAppSelector((state: any) => state.sync);
 
     const [selectedExerciseId, setSelectedExerciseId] = useState<string>("");
     const [searchQuery, setSearchQuery] = useState("");
-    const [warmupSets, setWarmupSets] = useState<string>('0');
-    const [targetSets, setTargetSets] = useState<string>('3');
-    const [targetRepetitionsMin, setTargetRepetitionsMin] = useState<string>('8');
-    const [targetRepetitionsMax, setTargetRepetitionsMax] = useState<string>('12');
+    const [warmupSets, setWarmupSets] = useState<number>(0);
+    const [targetSets, setTargetSets] = useState<number>(3);
+    const [targetRepetitionsMin, setTargetRepetitionsMin] = useState<number>(8);
+    const [targetRepetitionsMax, setTargetRepetitionsMax] = useState<number>(12);
     const [error, setError] = useState("");
 
     useEffect(() => {
         if (initialData) {
             setSelectedExerciseId(initialData.exerciseClientId);
-            setTargetSets(initialData.targetSets.toString());
-            setTargetRepetitionsMin(initialData.targetRepetitionsMin.toString());
-            setTargetRepetitionsMax(initialData.targetRepetitionsMax.toString());
+            setTargetSets(initialData.targetSets);
+            setTargetRepetitionsMin(initialData.targetRepetitionsMin);
+            setTargetRepetitionsMax(initialData.targetRepetitionsMax);
         }
     }, [initialData, visible]);
 
@@ -59,9 +60,9 @@ export default function TemplateExerciseModal({
     );
 
     const handleAddPress = () => {
-        const parsedSets = parseInt(targetSets, 10);
-        const parsedMin = parseInt(targetRepetitionsMin, 10);
-        const parsedMax = parseInt(targetRepetitionsMax, 10);
+        const parsedSets = targetSets;
+        const parsedMin = targetRepetitionsMin;
+        const parsedMax = targetRepetitionsMax;
 
         if (isNaN(parsedSets) || parsedSets <= 0) {
             setError('Target sets must be greater than 0');
@@ -90,6 +91,13 @@ export default function TemplateExerciseModal({
 
         onSave(templateExercise);
         onClose();
+    };
+
+    const handleRepetitionsMinChange = (val: number) => {
+        setTargetRepetitionsMin(val);
+        setError("");
+        if (val > targetRepetitionsMax)
+            setTargetRepetitionsMax(val);
     };
 
     return (
@@ -158,51 +166,41 @@ export default function TemplateExerciseModal({
 
                         <View style={styles.rowInputs}>
                             <View style={styles.halfInputContainer}>
-                                <Text style={styles.label}>Warmup Sets</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="e.g. 0"
-                                    placeholderTextColor="#555"
-                                    keyboardType="numeric"
+                                <NumberStepper
                                     value={warmupSets}
-                                    onChangeText={(val) => { setWarmupSets(val); setError(""); }}
+                                    onChange={(val) => { setWarmupSets(val); setError(""); }}
+                                    label={"Warmup Sets"}
+                                    labelStyle={styles.label}
                                 />
                             </View>
                             <View style={styles.halfInputContainer}>
-                                <Text style={styles.label}>Target Sets *</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="e.g. 3"
-                                    placeholderTextColor="#555"
-                                    keyboardType="numeric"
+                                <NumberStepper
                                     value={targetSets}
-                                    onChangeText={(val) => { setTargetSets(val); setError(""); }}
+                                    onChange={(val) => { setTargetSets(val); setError(""); }}
+                                    label={"Target Sets*"}
+                                    labelStyle={styles.label}
+                                    min={1}
                                 />
                             </View>
                         </View>
 
                         <View style={styles.rowInputs}>
                             <View style={styles.halfInputContainer}>
-                                <Text style={styles.label}>Min Reps *</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="8"
-                                    placeholderTextColor="#555"
-                                    keyboardType="numeric"
+                                <NumberStepper
                                     value={targetRepetitionsMin}
-                                    onChangeText={(val) => { setTargetRepetitionsMin(val); setError(""); }}
+                                    onChange={handleRepetitionsMinChange}
+                                    label={"Min Reps*"}
+                                    labelStyle={styles.label}
                                 />
                             </View>
 
                             <View style={styles.halfInputContainer}>
-                                <Text style={styles.label}>Max Reps *</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="12"
-                                    placeholderTextColor="#555"
-                                    keyboardType="numeric"
+                                <NumberStepper
                                     value={targetRepetitionsMax}
-                                    onChangeText={(val) => { setTargetRepetitionsMax(val); setError(""); }}
+                                    onChange={(val) => { setTargetRepetitionsMax(val); setError(""); }}
+                                    label={"Max Reps*"}
+                                    labelStyle={styles.label}
+                                    min={targetRepetitionsMin}
                                 />
                             </View>
                         </View>

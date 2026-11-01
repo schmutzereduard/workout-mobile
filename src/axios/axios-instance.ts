@@ -1,4 +1,4 @@
-import axios, {AxiosInstance} from "axios";
+import axios, { AxiosInstance } from "axios";
 import axiosRetry from "axios-retry";
 
 export function createAxiosInstance(baseURL: string): AxiosInstance {

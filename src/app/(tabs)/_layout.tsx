@@ -1,10 +1,10 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import {useAppSelector} from "@/store/store";
+import { useAppSelector } from "@/store/store";
 
 export default function TabLayout() {
 
-    const { accentColor } = useAppSelector((state :any): any => state.theme);
+    const { accentColor } = useAppSelector((state :any): any => state.sync);
 
     return (
         <Tabs

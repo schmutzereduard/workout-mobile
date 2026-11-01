@@ -4,6 +4,7 @@ import {
     MesocycleDTO,
     MesocycleTemplateDTO,
     SyncMetadata,
+    UserPreferencesDTO, UserProfileDTO,
     WorkoutDTO,
     WorkoutExerciseDTO,
     WorkoutTemplateDTO
@@ -11,7 +12,8 @@ import {
 
 export const StorageKeys = {
     AUTH_TOKEN: 'auth_token',
-    USER_INFO: 'user_info',
+    USER_PROFILE: 'user_profile',
+    USER_PREFERENCES: 'user_preferences',
     EXERCISES: "exercises",
     WORKOUT_TEMPLATES: "workout_templates",
     MESOCYCLE_TEMPLATES: "mesocycle_templates",
@@ -22,7 +24,7 @@ export const StorageKeys = {
 
 export const storage = createMMKV();
 
-class WorkoutUtils {
+export class WorkoutUtils {
 
     static getExercises(): ExerciseDTO[] {
         const exercises = storage.getString(StorageKeys.EXERCISES);
@@ -67,7 +69,7 @@ class WorkoutUtils {
         if (!existing)
             return;
 
-        if (!this.hasObjectChanged(existing, exercise))
+        if (!hasObjectChanged(existing, exercise))
             return;
 
         const metadata: SyncMetadata = {
@@ -143,7 +145,7 @@ class WorkoutUtils {
         if (!existing)
             return;
 
-        if (!this.hasObjectChanged(existing, workoutTemplate))
+        if (!hasObjectChanged(existing, workoutTemplate))
             return;
 
         const metadata: SyncMetadata = {
@@ -339,7 +341,7 @@ class WorkoutUtils {
         if (!existing)
             return;
 
-        if (!this.hasObjectChanged(existing, mesocycle))
+        if (!hasObjectChanged(existing, mesocycle))
             return;
 
         const metadata: SyncMetadata = {
@@ -354,20 +356,82 @@ class WorkoutUtils {
             existing => existing.metadata.clientId === updatedMesocycle.metadata.clientId ? updatedMesocycle : existing);
         storage.set(StorageKeys.MESOCYCLES, JSON.stringify(newMesocycles));
     };
-
-    private static hasObjectChanged<T extends { metadata?: any }>(existing: T, incoming: T): boolean {
-
-        if (existing === null)
-            return false;
-
-        const { metadata: _, ...existingData } = existing;
-        const { metadata: __, ...incomingData } = incoming;
-
-        return JSON.stringify(existingData) !== JSON.stringify(incomingData);
-    };
 }
 
-export default WorkoutUtils;
+export class UserUtils {
+
+    static getUserPreferences(): UserPreferencesDTO | null {
+        const preferences = storage.getString(StorageKeys.USER_PREFERENCES);
+        if (!preferences)
+            return null;
+
+        return JSON.parse(preferences);
+    };
+
+    static updateUserPreferences(preferences: UserPreferencesDTO): void {
+
+        const currentPreferences = this.getUserPreferences();
+        if (!currentPreferences)
+            return
+
+        if (!hasObjectChanged(currentPreferences, preferences))
+            return;
+
+        const currentMetdata = currentPreferences.metadata;
+        const updatedMetadata = {
+            ...currentMetdata,
+            updatedAt: new Date().toISOString()
+        };
+
+        const updatedPreferences = {
+            ...preferences,
+            metadata: updatedMetadata
+        };
+
+        storage.set(StorageKeys.USER_PREFERENCES, JSON.stringify(updatedPreferences));
+    }
+
+    static getUserProfile(): UserProfileDTO | null {
+        const profile = storage.getString(StorageKeys.USER_PROFILE);
+        if (!profile)
+            return null;
+
+        return JSON.parse(profile);
+    };
+
+    static updateUserProfile(profile: UserProfileDTO): void {
+
+        const currentProfile = this.getUserProfile();
+        if (!currentProfile)
+            return;
+
+        if (!hasObjectChanged(currentProfile, profile))
+            return;
+
+        const currentMetadata = currentProfile.metadata;
+        const updatedMetadata = {
+            ...currentMetadata,
+            updatedAt: new Date().toISOString()
+        };
+
+        const updatedProfile = {
+            ...profile,
+            metadata: updatedMetadata
+        };
+
+        storage.set(StorageKeys.USER_PROFILE, JSON.stringify(updatedProfile));
+    }
+}
+
+const hasObjectChanged = <T extends { metadata?: any }>(existing: T, incoming: T): boolean => {
+    if (existing === null || incoming === null)
+        return false;
+
+    const { metadata: _, ...existingData } = existing;
+    const { metadata: __, ...incomingData } = incoming;
+
+    return JSON.stringify(existingData) !== JSON.stringify(incomingData);
+};
 
 export const LocalStorage = {
     set(key: string, value: string | number | boolean): void {

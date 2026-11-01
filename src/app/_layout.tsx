@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import {Provider, useDispatch} from 'react-redux';
-import {store, useAppSelector,} from '@/store/store';
+import { Provider, useDispatch} from 'react-redux';
+import { store, useAppSelector,} from '@/store/store';
 import { refreshToken } from '@/store/authSlice';
-import {LocalStorage, StorageKeys} from "@/utils/Storage";
+import { LocalStorage, StorageKeys} from "@/utils/Storage";
+import { refreshTheme } from "@/store/syncSlice";
 
 function InitialLayout() {
 
@@ -18,17 +19,20 @@ function InitialLayout() {
         if (savedToken && !token) {
             dispatch(refreshToken());
         }
+
+        dispatch(refreshTheme());
     }, []);
 
-    useEffect(() => {
-        const inAuthGroup = segments[0] === 'login';
-
-        if (!token && !inAuthGroup) {
-            router.replace('/login');
-        } else if (token && inAuthGroup) {
-            router.replace('/(tabs)');
-        }
-    }, [token, segments]);
+    //TODO -> uncomment
+    // useEffect(() => {
+    //     const inAuthGroup = segments[0] === 'login';
+    //
+    //     if (!token && !inAuthGroup) {
+    //         router.replace('/login');
+    //     } else if (token && inAuthGroup) {
+    //         router.replace('/(tabs)');
+    //     }
+    // }, [token, segments]);
 
     return (
         <Stack screenOptions={{ headerShown: false }}>

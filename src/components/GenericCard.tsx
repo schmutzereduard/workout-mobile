@@ -28,7 +28,7 @@ export default function GenericCard({
                                         onPlayPress,
                                         style
                                     }: GenericCardProps) {
-    const { accentColor } = useAppSelector((state: any): any => state.theme);
+    const { accentColor } = useAppSelector((state: any): any => state.sync);
 
     const Container = (onPress || onLongPress || selectable) ? TouchableOpacity : View;
 

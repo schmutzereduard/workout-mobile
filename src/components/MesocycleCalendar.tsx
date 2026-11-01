@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector } from "@/store/store";
 import { DAYS_NAMES_SHORT, MONTH_NAMES } from "@/utils/Constants";
 import { MesocycleDTO } from "@/types/workout";
-import WorkoutUtils, {StorageKeys} from "@/utils/Storage";
+import { WorkoutUtils, StorageKeys } from "@/utils/Storage";
 import {useStorageListener} from "@/hooks/useStorageListener";
 
 interface MesocycleCalendarProps {
@@ -14,7 +14,7 @@ interface MesocycleCalendarProps {
 
 export default function MesocycleCalendar({ onSelectDate, onElipsisPress }: MesocycleCalendarProps) {
 
-    const { accentColor } = useAppSelector((state: any): any => state.theme);
+    const { accentColor } = useAppSelector((state: any): any => state.sync);
     const [currentDate, setCurrentDate] = useState(new Date());
     const calendarButtonRef = useRef<View>(null);
 

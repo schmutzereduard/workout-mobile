@@ -25,7 +25,7 @@ export default function CustomHeader({
                                          onHistoryPress,
                                          style,
                                      }: CustomHeaderProps) {
-    const { accentColor } = useSelector((state: any) => state.theme);
+    const { accentColor } = useSelector((state: any) => state.sync);
 
     return (
         <View style={[styles.headerContainer, { backgroundColor: accentColor }, style]}>

@@ -15,7 +15,7 @@ import { useAppSelector } from "@/store/store";
 import { WorkoutTemplateDTO, TemplateExerciseDTO } from "@/types/workout";
 import useModals from "@/hooks/useModals";
 import TemplateExerciseModal from "@/components/modal/TemplateExerciseModal";
-import WorkoutUtils from "@/utils/Storage";
+import { WorkoutUtils } from "@/utils/Storage";
 
 interface WorkoutTemplateModalProps {
     visible: boolean;
@@ -35,7 +35,7 @@ export default function WorkoutTemplateModal({
 
     const [workoutTemplateId, setWorkoutTemplateId] = useState<string>("");
 
-    const { accentColor } = useAppSelector((state: any) => state.theme);
+    const { accentColor } = useAppSelector((state: any) => state.sync);
 
     const [title, setTitle] = useState("");
     const [notes, setNotes] = useState("");

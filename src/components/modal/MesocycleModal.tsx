@@ -16,8 +16,9 @@ import { MesocycleDTO, MesocycleTemplateDTO } from "@/types/workout";
 import MesocycleTemplateModal from "@/components/modal/MesocycleTemplateModal";
 import useModals from "@/hooks/useModals";
 import ActionMenu, {AnchorRect} from "@/components/ActionMenu";
-import WorkoutUtils, {StorageKeys} from "@/utils/Storage";
+import {WorkoutUtils, StorageKeys} from "@/utils/Storage";
 import {useStorageListener} from "@/hooks/useStorageListener";
+import NumberStepper from "@/components/NumberStepper";
 
 interface MesocycleModalProps {
     visible: boolean;
@@ -39,7 +40,7 @@ export default function MesocycleModal({
 
     const [mesocycleClientId, setMesocycleClientId] = useState<string>("");
 
-    const { accentColor } = useAppSelector((state: any) => state.theme);
+    const { accentColor } = useAppSelector((state: any) => state.sync);
 
     const { modals, modalControls } = useModals();
 
@@ -47,8 +48,8 @@ export default function MesocycleModal({
     const headerButtonRef = useRef<View>(null);
 
     const [name, setName] = useState("");
-    const [targetWeeks, setTargetWeeks] = useState("6");
-    const [deloadWeek, setDeloadWeek] = useState("6");
+    const [targetWeeks, setTargetWeeks] = useState(6);
+    const [deloadWeek, setDeloadWeek] = useState(6);
     const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
     const [endDate, setEndDate] = useState("");
     const [scheduledWorkouts, setScheduledWorkouts] = useState<MesocycleTemplateDTO[]>([]);
@@ -64,7 +65,7 @@ export default function MesocycleModal({
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
         if (startDate && dateRegex.test(startDate)) {
-            const weeks = parseInt(targetWeeks, 10) || 4;
+            const weeks = targetWeeks || 4;
             const start = new Date(startDate);
             if (!isNaN(start.getTime())) {
                 const calculatedEnd = new Date(start);
@@ -80,8 +81,8 @@ export default function MesocycleModal({
         if (initialData) {
             setMesocycleClientId(initialData.metadata.clientId);
             setName(initialData.name);
-            setTargetWeeks(String(initialData.targetWeeks));
-            setDeloadWeek(String(initialData.deloadWeek));
+            setTargetWeeks(initialData.targetWeeks);
+            setDeloadWeek(initialData.deloadWeek);
             setStartDate(initialData.startDate);
             setEndDate(initialData.endDate);
             setScheduledWorkouts(initialData.mesocycleTemplates || []);
@@ -231,8 +232,8 @@ export default function MesocycleModal({
         const payload: MesocycleDTO = {
             metadata,
             name: name.trim(),
-            targetWeeks: parseInt(targetWeeks, 10),
-            deloadWeek: parseInt(deloadWeek, 10),
+            targetWeeks: targetWeeks,
+            deloadWeek: deloadWeek,
             startDate,
             endDate,
             mesocycleTemplates: linkedTemplates,
@@ -256,7 +257,7 @@ export default function MesocycleModal({
         }
 
         const maxWeek = Math.max(...scheduledWorkouts.map(w => w.weekNumber));
-        const targetWeeksNum = parseInt(targetWeeks, 10) || 4;
+        const targetWeeksNum = targetWeeks;
 
         if (maxWeek >= targetWeeksNum) {
             setError(`Cannot repeat past target weeks limit (${targetWeeksNum} weeks).`);
@@ -275,6 +276,12 @@ export default function MesocycleModal({
 
         setScheduledWorkouts([...scheduledWorkouts, ...duplicatedTemplates]);
         setError("");
+    };
+
+    const handleTargetWeeksChange = (val: number) => {
+        setTargetWeeks(val);
+        if (val < deloadWeek)
+            setDeloadWeek(val);
     };
 
     const isEditMode = !!initialData?.metadata?.clientId;
@@ -309,27 +316,6 @@ export default function MesocycleModal({
 
                         <View style={styles.rowDates}>
                             <View style={styles.dateCol}>
-                                <Text style={styles.label}>Target Weeks *</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    keyboardType="numeric"
-                                    value={targetWeeks}
-                                    onChangeText={setTargetWeeks}
-                                />
-                            </View>
-                            <View style={styles.dateCol}>
-                                <Text style={styles.label}>Deload Week *</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    keyboardType="numeric"
-                                    value={deloadWeek}
-                                    onChangeText={setDeloadWeek}
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.rowDates}>
-                            <View style={styles.dateCol}>
                                 <Text style={styles.label}>{`Start Date\n(YYYY-MM-DD)`}</Text>
                                 <TextInput
                                     style={styles.input}
@@ -345,6 +331,28 @@ export default function MesocycleModal({
                                     style={styles.input}
                                     value={endDate}
                                     editable={false}
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.rowDates}>
+                            <View style={styles.dateCol}>
+                                <NumberStepper
+                                    value={targetWeeks}
+                                    onChange={handleTargetWeeksChange}
+                                    label={"Target Weeks*"}
+                                    containerStyle={styles.stepper}
+                                    labelStyle={styles.label}
+                                />
+                            </View>
+                            <View style={styles.dateCol}>
+                                <NumberStepper
+                                    value={deloadWeek}
+                                    onChange={(val) => setDeloadWeek(val)}
+                                    label={"Deload Week*"}
+                                    containerStyle={styles.stepper}
+                                    labelStyle={styles.label}
+                                    max={targetWeeks}
                                 />
                             </View>
                         </View>
@@ -604,4 +612,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         fontSize: 14,
     },
+    stepper: {
+        paddingVertical: 16,
+    }
 });

@@ -1,12 +1,12 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authSlice from "@/store/authSlice";
-import themeSlice from "@/store/themeSlice";
-import {TypedUseSelectorHook, useDispatch, useSelector} from "react-redux";
+import syncSlice from "@/store/syncSlice";
+import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 
 export const store = configureStore({
     reducer: {
         auth: authSlice,
-        theme: themeSlice
+        sync: syncSlice
     },
 });
 

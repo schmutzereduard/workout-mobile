@@ -13,7 +13,7 @@ import * as Crypto from 'expo-crypto';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppSelector } from "@/store/store";
 import { MesocycleTemplateDTO, WorkoutTemplateDTO } from "@/types/workout";
-import WorkoutUtils from "@/utils/Storage";
+import { WorkoutUtils } from "@/utils/Storage";
 
 interface MesocycleTemplateModalProps {
     visible: boolean;
@@ -36,7 +36,7 @@ export default function MesocycleTemplateModal({
                                                    onSave,
                                                    onClose
                                                }: MesocycleTemplateModalProps) {
-    const { accentColor } = useAppSelector((state: any) => state.theme);
+    const { accentColor } = useAppSelector((state: any) => state.sync);
 
     const [selectedTemplateClientId, setSelectedTemplateClientId] = useState<string>();
     const [searchQuery, setSearchQuery] = useState('');

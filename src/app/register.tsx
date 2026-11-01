@@ -1,15 +1,12 @@
-import {StyleSheet, Text, TextInput, TextInputProps, TouchableOpacity, View, ViewStyle} from "react-native";
-import React, { useState } from "react";
-import { Dropdown } from "react-native-element-dropdown";
-import InputSpinner from "react-native-input-spinner";
-
-const GENDER_OPTIONS = [
-    { label: "Male", value: "M" },
-    { label: "Female", value: "F" },
-];
+import React, { useState, useRef } from "react";
+import { StyleSheet, Text, TextInput, TextInputProps, TouchableOpacity, View, ViewStyle, ScrollView } from "react-native";
+import { useAppSelector } from "@/store/store";
+import NumberStepper from "@/components/NumberStepper";
+import ActionMenu, { AnchorRect } from "@/components/ActionMenu";
+import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 interface ProfileInfo {
-
     email: string;
     password: string;
     confirmPassword: string;
@@ -22,6 +19,8 @@ interface ProfileInfo {
 }
 
 export default function RegisterScreen() {
+    const { accentColor, backgroundColor } = useAppSelector((state: any) => state.sync);
+
     const [info, setInfo] = useState<ProfileInfo>({
         email: "",
         password: "",
@@ -30,9 +29,12 @@ export default function RegisterScreen() {
         lastName: "",
         dateOfBirth: "",
         gender: "",
-        height: 150,
-        weight: 65.0,
+        height: 170,
+        weight: 70.0,
     });
+
+    const [genderMenuAnchor, setGenderMenuAnchor] = useState<AnchorRect | null>(null);
+    const genderButtonRef = useRef<View>(null);
 
     const handleInputChange = (key: string, value: string | number): void => {
         setInfo((prev) => ({
@@ -41,15 +43,22 @@ export default function RegisterScreen() {
         }));
     };
 
+    const handleOpenGenderMenu = () => {
+        genderButtonRef.current?.measureInWindow((x, y, width, height) => {
+            setGenderMenuAnchor({ x, y, width, height });
+        });
+    };
+
     return (
-        <View style={styles.container}>
-            <View style={styles.section}>
-                <Text style={styles.title}>Account info</Text>
+        <ScrollView contentContainerStyle={[styles.container, { backgroundColor }]}>
+            <View style={styles.card}>
+                <Text style={styles.sectionTitle}>Account Info</Text>
                 <LabeledTextInput
                     label={"Email"}
                     fieldKey={"email"}
                     value={info.email}
                     placeholder={"Enter your email"}
+                    placeholderTextColor="#666"
                     onChangeText={handleInputChange}
                     autoCapitalize="none"
                     keyboardType="email-address"
@@ -57,6 +66,7 @@ export default function RegisterScreen() {
                 <LabeledTextInput
                     label={"Password"}
                     placeholder={"Enter your password"}
+                    placeholderTextColor="#666"
                     fieldKey={"password"}
                     value={info.password}
                     onChangeText={handleInputChange}
@@ -66,21 +76,23 @@ export default function RegisterScreen() {
                     label={"Confirm Password"}
                     fieldKey={"confirmPassword"}
                     placeholder={"Confirm your password"}
+                    placeholderTextColor="#666"
                     value={info.confirmPassword}
                     onChangeText={handleInputChange}
                     secureTextEntry
                 />
             </View>
 
-            <View style={styles.section}>
-                <Text style={styles.title}>Profile info</Text>
+            <View style={styles.card}>
+                <Text style={styles.sectionTitle}>Profile Info</Text>
 
                 <View style={styles.row}>
                     <LabeledTextInput
                         containerStyle={styles.flexInput}
                         label={"First Name"}
                         fieldKey={"firstName"}
-                        placeholder={"First Name"}
+                        placeholder={"First"}
+                        placeholderTextColor="#666"
                         value={info.firstName}
                         onChangeText={handleInputChange}
                     />
@@ -88,7 +100,8 @@ export default function RegisterScreen() {
                         containerStyle={styles.flexInput}
                         label={"Last Name"}
                         fieldKey={"lastName"}
-                        placeholder={"Last Name"}
+                        placeholder={"Last"}
+                        placeholderTextColor="#666"
                         value={info.lastName}
                         onChangeText={handleInputChange}
                     />
@@ -96,81 +109,85 @@ export default function RegisterScreen() {
 
                 <View style={styles.row}>
                     <LabeledTextInput
-                        containerStyle={{ flex: 2 }}
+                        containerStyle={{ flex: 1.5 }}
                         label={"Date of Birth"}
                         fieldKey={"dateOfBirth"}
                         placeholder={"YYYY-MM-DD"}
+                        placeholderTextColor="#666"
                         value={info.dateOfBirth}
                         onChangeText={handleInputChange}
                     />
+
                     <View style={{ flex: 1 }}>
                         <Text style={styles.labelText}>Gender</Text>
-                        <Dropdown
-                            style={[styles.input, styles.dropdown]}
-                            placeholderStyle={styles.dropdownText}
-                            selectedTextStyle={styles.dropdownText}
-                            itemTextStyle={styles.dropdownItemText}
-                            data={GENDER_OPTIONS}
-                            placeholder={"M / F"}
-                            labelField="label"
-                            valueField="value"
-                            value={info.gender}
-                            onChange={(item) => handleInputChange("gender", item.value)}
-                        />
+                        <View ref={genderButtonRef} collapsable={false}>
+                            <TouchableOpacity
+                                style={styles.genderSelectButton}
+                                onPress={handleOpenGenderMenu}
+                            >
+                                <Text style={[styles.genderButtonText, !info.gender && { color: "#666" }]}>
+                                    {info.gender === "M" ? "Male" : info.gender === "F" ? "Female" : "Select"}
+                                </Text>
+                                <Ionicons name="chevron-down" size={16} color="#888" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
 
                 <View style={styles.row}>
                     <View style={styles.flexInput}>
-                        <Text style={styles.labelText}>Height</Text>
-                        <InputSpinner
-                            editable={true}
-                            type="number"
-                            max={250}
-                            min={100}
-                            step={1}
+                        <NumberStepper
+                            label="Height"
                             value={info.height}
-                            onChange={(num: number) => handleInputChange("height", num)}
-                            skin="clean"
-                            color="white"
-                            textColor="black"
-                            fontSize={18}
-                            style={styles.spinnerContainer}
-                            buttonStyle={styles.spinnerButton}
-                            append={<Text style={styles.unitText}>cm</Text>}
+                            onChange={(num) => handleInputChange("height", num)}
+                            min={100}
+                            max={250}
+                            step={1}
+                            unit="cm"
                         />
                     </View>
 
                     <View style={styles.flexInput}>
-                        <Text style={styles.labelText}>Weight</Text>
-                        <InputSpinner
-                            editable={true}
-                            type={"real"}
-                            max={200}
-                            min={30}
-                            step={0.1}
-                            precision={1}
+                        <NumberStepper
+                            label="Weight"
                             value={info.weight}
-                            onChange={(num: number) => handleInputChange("weight", num)}
-                            skin="clean"
-                            color="white"
-                            textColor="black"
-                            fontSize={18}
-                            style={styles.spinnerContainer}
-                            buttonStyle={styles.spinnerButton}
-                            append={<Text style={styles.unitText}>kg</Text>}
+                            onChange={(num) => handleInputChange("weight", num)}
+                            min={30}
+                            max={250}
+                            step={0.5}
+                            precision={1}
+                            unit="kg"
                         />
                     </View>
                 </View>
             </View>
 
-            <TouchableOpacity style={styles.button}>
+            <TouchableOpacity style={[styles.button, { backgroundColor: accentColor }]} onPress={() => console.log(info)}>
                 <Text style={styles.buttonText}>Register</Text>
             </TouchableOpacity>
-            <TouchableOpacity>
+
+            <TouchableOpacity style={styles.goBackContainer} onPress={() => router.back()}>
                 <Text style={styles.goBackText}>Go back</Text>
             </TouchableOpacity>
-        </View>
+
+            <ActionMenu
+                visible={genderMenuAnchor !== null}
+                anchorRect={genderMenuAnchor}
+                onClose={() => setGenderMenuAnchor(null)}
+                items={[
+                    {
+                        label: 'Male',
+                        icon: 'male-outline',
+                        onPress: () => handleInputChange("gender", "M"),
+                    },
+                    {
+                        label: 'Female',
+                        icon: 'female-outline',
+                        onPress: () => handleInputChange("gender", "F"),
+                    },
+                ]}
+            />
+        </ScrollView>
     );
 }
 
@@ -193,7 +210,7 @@ export const LabeledTextInput: React.FC<LabeledTextInputProps> = ({
                                                                       ...rest
                                                                   }) => {
     return (
-        <View style={containerStyle}>
+        <View style={[styles.inputGroup, containerStyle]}>
             <Text style={styles.labelText}>{label}</Text>
             <TextInput
                 style={[styles.input, style]}
@@ -208,94 +225,87 @@ export const LabeledTextInput: React.FC<LabeledTextInputProps> = ({
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: "black",
-        flex: 1,
+        flexGrow: 1,
         paddingHorizontal: 20,
-        paddingTop: 50,
+        paddingVertical: 60,
     },
-    section: {
-        marginBottom: 20,
-        gap: 12,
+    card: {
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 16,
     },
-    title: {
-        fontSize: 36,
-        fontWeight: "bold",
-        color: "white",
-        marginVertical: 8,
-        alignSelf: "center",
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: "#aaa",
+        textTransform: "uppercase",
+        marginBottom: 12,
+        letterSpacing: 1,
     },
     row: {
         flexDirection: "row",
-        gap: 10,
+        gap: 12,
+    },
+    inputGroup: {
+        marginBottom: 12,
     },
     input: {
-        backgroundColor: "white",
+        backgroundColor: "#2A2A2A",
+        borderWidth: 1,
+        borderColor: "#3A3A3A",
         borderRadius: 8,
-        fontSize: 18,
+        fontSize: 16,
         paddingHorizontal: 14,
         paddingVertical: 12,
-        color: "#000",
+        color: "#FFF",
         width: "100%",
     },
     flexInput: {
         flex: 1,
     },
-    dropdown: {
-        backgroundColor: "white",
+    genderSelectButton: {
+        backgroundColor: "#2A2A2A",
+        borderWidth: 1,
+        borderColor: "#3A3A3A",
         borderRadius: 8,
         paddingHorizontal: 14,
         height: 48,
-        justifyContent: "center",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
     },
-    dropdownText: {
-        fontSize: 18,
-        color: "grey",
+    genderButtonText: {
+        fontSize: 16,
+        color: "#FFF",
     },
-    dropdownItemText: {
-        fontSize: 18,
-        color: "black",
-    },
-    spinnerContainer: {
-        borderRadius: 8,
-        backgroundColor: "white",
-        width: "100%",
-        height: 48,
-        shadowColor: "transparent",
-    },
-    spinnerButton: {
-        borderRadius: 8,
-    },
-    unitText: {
-        color: "gray",
-        fontSize: 18,
-        marginRight: 8,
-        alignSelf: "center",
+    labelText: {
+        color: "white",
+        fontSize: 15,
+        fontWeight: "600",
+        marginBottom: 6,
+        marginLeft: 4,
     },
     button: {
-        backgroundColor: "red",
-        padding: 12,
+        padding: 14,
         borderRadius: 8,
         alignItems: "center",
         marginTop: 10,
     },
     buttonText: {
         color: "white",
-        fontSize: 24,
-        fontWeight: "bold",
-    },
-    labelText: {
-        color: "white",
         fontSize: 18,
         fontWeight: "bold",
-        marginLeft: 5,
-        marginBottom: 5,
+    },
+    goBackContainer: {
+        marginTop: 15,
+        alignSelf: "center",
+        padding: 10,
     },
     goBackText: {
-        color: "white",
-        fontSize: 24,
-        fontWeight: "bold",
+        color: "#aaa",
+        fontSize: 16,
+        fontWeight: "600",
         textDecorationLine: "underline",
-        alignSelf: "center",
-        padding: 10
     }
 });

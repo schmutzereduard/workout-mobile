@@ -15,9 +15,13 @@ export type ExerciseSetType =
     | 'Warmup'
     | 'Working';
 
-export type UserInfoGender =
+export type UserGender =
     | 'Male'
     | 'Female';
+
+export type WeightUnit =
+    | 'kg'
+    | 'lbs';
 
 export interface SyncMetadata {
     id?: number;
@@ -110,12 +114,22 @@ export interface WorkoutTemplateDTO {
     templateExercises?: TemplateExerciseDTO[];
 }
 
-export interface UserInfoDTO {
+export interface UserProfileDTO {
     metadata: SyncMetadata;
     firstName: string;
     lastName: string;
-    gender: UserInfoGender;
+    gender: UserGender;
     dateOfBirth: string;
     heightInCm: number;
-    weightInKm: number;
+    weightInKg: number;
+}
+
+export interface UserPreferencesDTO {
+    metadata: SyncMetadata;
+    weightUnit: WeightUnit;
+    progressiveOverloadIncrement: number;
+    deloadVolumePercentage: number;
+    deloadIntensityPercentage: number;
+    backgroundColor: string;
+    accentColor: string;
 }

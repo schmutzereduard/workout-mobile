@@ -11,7 +11,7 @@ import {
 import {Ionicons} from '@expo/vector-icons';
 import {useAppSelector} from "@/store/store";
 import {MesocycleDTO} from "@/types/workout";
-import WorkoutUtils from "@/utils/Storage";
+import {WorkoutUtils} from "@/utils/Storage";
 
 interface MesocycleHistoryModalProps {
     visible: boolean;
@@ -22,7 +22,7 @@ export default function MesocycleHistoryModal({
                                                   visible,
                                                   onClose,
                                               }: MesocycleHistoryModalProps) {
-    const {accentColor} = useAppSelector((state: any) => state.theme);
+    const {accentColor} = useAppSelector((state: any) => state.sync);
 
     const [selectedMeso, setSelectedMeso] = useState<MesocycleDTO | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -173,7 +173,6 @@ export default function MesocycleHistoryModal({
                         </ScrollView>
                     )}
 
-                    {/* Bottom Action */}
                     <TouchableOpacity
                         style={[styles.closeBtn, {backgroundColor: '#2C2C2E'}]}
                         onPress={selectedMeso ? () => setSelectedMeso(null) : onClose}

@@ -1,21 +1,21 @@
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import CustomHeader from "@/components/CustomHeader";
 import GenericCard from "@/components/GenericCard";
-import {useCallback, useState} from "react";
+import { useCallback, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import {useAppSelector} from "@/store/store";
+import { useAppSelector } from "@/store/store";
 import useModals from "@/hooks/useModals";
 import ConfirmDialog from "@/components/modal/ConfirmDialog";
-import {useFocusEffect} from "expo-router";
+import { useFocusEffect } from "expo-router";
 import WorkoutTemplateModal from "@/components/modal/WorkoutTemplateModal";
-import WorkoutUtils from "@/utils/Storage";
+import { WorkoutUtils } from "@/utils/Storage";
 
 export default function WorkoutTemplatesScreen() {
 
     const { modals, modalControls } = useModals();
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
-    const { backgroundColor, accentColor } = useAppSelector((state: any) => state.theme);
+    const { backgroundColor, accentColor } = useAppSelector((state: any) => state.sync);
     const [searchQuery, setSearchQuery] = useState('');
 
     const workoutTemplates = WorkoutUtils.getWorkoutTemplates();

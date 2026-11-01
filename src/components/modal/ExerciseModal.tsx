@@ -32,7 +32,7 @@ export default function ExerciseModal({
                                           onDelete,
                                           onClose
                                       }: ExerciseModalProps) {
-    const { accentColor } = useAppSelector((state: any) => state.theme);
+    const { accentColor } = useAppSelector((state: any) => state.sync);
 
     const [name, setName] = useState('');
     const [variation, setVariation] = useState('');
