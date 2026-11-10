@@ -1,22 +1,22 @@
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {FlatList, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import CustomHeader from "@/components/CustomHeader";
 import GenericCard from "@/components/GenericCard";
-import { useCallback, useState } from "react";
-import { Ionicons } from "@expo/vector-icons";
+import React, {useCallback, useState} from "react";
+import {Ionicons} from "@expo/vector-icons";
 import useModals from "@/hooks/useModals";
 import ConfirmDialog from "@/components/modal/ConfirmDialog";
-import { useFocusEffect } from "expo-router";
+import {useFocusEffect} from "expo-router";
 import ExerciseModal from "@/components/modal/ExerciseModal";
-import { useAppSelector } from "@/store/store";
-import { WorkoutUtils } from "@/utils/Storage";
+import {useAppSelector} from "@/store/store";
+import {WorkoutUtils} from "@/utils/Storage";
 
 export default function ExercisesScreen() {
 
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
-    const { backgroundColor, accentColor } = useAppSelector((state: any) => state.sync);
+    const {backgroundColor, accentColor} = useAppSelector((state: any) => state.sync);
     const [searchQuery, setSearchQuery] = useState('');
-    const { modals, modalControls } = useModals();
+    const {modals, modalControls} = useModals();
 
     let exercises = WorkoutUtils.getExercises();
 
@@ -45,7 +45,7 @@ export default function ExercisesScreen() {
     };
 
     const handlePressCard = (id: string) => {
-        modalControls.openModal("editExercise", { exerciseId: id });
+        modalControls.openModal("editExercise", {exerciseId: id});
     };
 
     const handleAddExercise = (exerciseData: any) => {
@@ -94,7 +94,7 @@ export default function ExercisesScreen() {
     const isAllSelected = selectedIds.length === filteredExercises.length && filteredExercises.length > 0;
 
     return (
-        <View style={[styles.container, { backgroundColor }]}>
+        <View style={[styles.container, {backgroundColor}]}>
 
             <CustomHeader
                 showSearch={true}
@@ -118,41 +118,48 @@ export default function ExercisesScreen() {
                     </TouchableOpacity>
 
                     <TouchableOpacity onPress={handleDeletePress} style={styles.deleteActionBtn}>
-                        <Ionicons name="trash-outline" size={20} color="white" />
+                        <Ionicons name="trash-outline" size={20} color="white"/>
                     </TouchableOpacity>
                 </View>
             ) : null}
 
-            <View style={styles.content}>
-                <FlatList
-                    data={filteredExercises}
-                    keyExtractor={(item) => item.metadata.clientId}
-                    renderItem={({ item }) => {
-                        const isSelected = selectedIds.includes(item.metadata.clientId);
-                        return (
-                            <GenericCard
-                                header={item.muscleGroups.join(" • ")}
-                                title={item.name + (item.variation ? ` • ${item.variation}` : "")}
-                                subtitle={item.notes}
-                                selectable={isSelectionMode}
-                                selected={isSelected}
-                                onLongPress={() => handleLongPressCard(item.metadata.clientId)}
-                                onPress={() => {
-                                    if (isSelectionMode) {
-                                        toggleSelectId(item.metadata.clientId);
-                                    } else {
-                                        handlePressCard(item.metadata.clientId);
-                                    }
-                                }}
-                            />
-                        );
-                    }}
-                />
-            </View>
+            {filteredExercises.length !== 0 ?
+                <View style={styles.content}>
+                    <FlatList
+                        data={filteredExercises}
+                        keyExtractor={(item) => item.metadata.clientId}
+                        renderItem={({item}) => {
+                            const isSelected = selectedIds.includes(item.metadata.clientId);
+                            return (
+                                <GenericCard
+                                    header={item.muscleGroups.join(" • ")}
+                                    title={item.name + (item.variation ? ` • ${item.variation}` : "")}
+                                    subtitle={item.notes}
+                                    selectable={isSelectionMode}
+                                    selected={isSelected}
+                                    onLongPress={() => handleLongPressCard(item.metadata.clientId)}
+                                    onPress={() => {
+                                        if (isSelectionMode) {
+                                            toggleSelectId(item.metadata.clientId);
+                                        } else {
+                                            handlePressCard(item.metadata.clientId);
+                                        }
+                                    }}
+                                />
+                            );
+                        }}
+                    />
+                </View>
+                :
+                <View style={styles.emptyContainer}>
+                    <Ionicons name="list-outline" size={48} color="#555555"/>
+                    <Text style={styles.emptyText}>No exercises found.</Text>
+                </View>
+            }
 
             {!isSelectionMode && (
-                <TouchableOpacity style={[styles.addBtn, { backgroundColor: accentColor}]} onPress={handleAddPress}>
-                    <Ionicons name="add" size={30} color="#FFF" />
+                <TouchableOpacity style={[styles.addBtn, {backgroundColor: accentColor}]} onPress={handleAddPress}>
+                    <Ionicons name="add" size={30} color="#FFF"/>
                 </TouchableOpacity>
             )}
 
@@ -255,8 +262,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         elevation: 6,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
+        shadowOffset: {width: 0, height: 3},
         shadowOpacity: 0.3,
         shadowRadius: 4,
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 40,
+    },
+    emptyText: {
+        color: '#888888',
+        fontSize: 15,
+        marginTop: 10,
     },
 });

@@ -86,7 +86,10 @@ export interface TemplateExerciseDTO {
 }
 
 export interface WorkoutExerciseDTO {
-    metadata: SyncMetadata;
+    workoutId?: number;
+    exerciseId?: number;
+    workoutClientId: string;
+    exerciseClientId: string;
     orderInWorkout: number;
     targetSets: number;
     targetRepetitionsMin: number;
