@@ -12,6 +12,8 @@ import ActionMenu, { AnchorRect } from "@/components/ActionMenu";
 import React, { useState } from "react";
 import AlertModal from "@/components/modal/AlertModal";
 import { useStorageListener } from "@/hooks/useStorageListener";
+import ConfirmDialog from "@/components/modal/ConfirmDialog";
+import {router} from "expo-router";
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -61,8 +63,8 @@ export default function MesocyclesScreen() {
         WorkoutUtils.editMesocycle(mesocycleData);
     };
 
-    const handlePlayPress = (workoutTemplate: WorkoutTemplateDTO | null) => {
-        console.log("Open workout page");
+    const handlePlayPress = (workoutTemplateId: string) => {
+        console.log("Open workout page" + workoutTemplateId + " | " + WorkoutUtils.getActiveMesocycle()?.metadata.clientId);
     };
 
     let upcomingWorkouts = useStorageListener(
@@ -113,7 +115,7 @@ export default function MesocyclesScreen() {
                                                 ? `${template.templateExercises.map(tempEx => WorkoutUtils.getExercises().find(ex => ex.metadata.clientId === tempEx.exerciseClientId)).filter(Boolean).flatMap(ex => ex!.muscleGroups).filter((group, index, self) => self.indexOf(group) === index).join(' • ')}\n${template.templateExercises.length} Exercises${template?.notes ? `\n${template.notes}` : ""}`
                                                 : `0 Exercises${template?.notes ? `\n${template.notes}` : ""}`
                                     }
-                                    onPlayPress={isDeleted ? undefined : () => handlePlayPress(template)}
+                                    onPlayPress={isDeleted ? undefined : () => modalControls.openModal("startWorkout", { workoutTemplateId: template.metadata.clientId, mesocycleId: WorkoutUtils.getActiveMesocycle()!.metadata.clientId})}
                                 />
                             </View>
                         );
@@ -157,6 +159,16 @@ export default function MesocyclesScreen() {
                         visible={modals.editWarning.isOpen}
                         message={"No active mesocycles present"}
                         onClose={() => modalControls.closeModal("editWarning")}
+                    />
+                }
+
+                {modals.startWorkout?.isOpen &&
+                    <ConfirmDialog
+                        title={"Start Workout"}
+                        visible={modals.startWorkout.isOpen}
+                        message={"Do you want to start the workout?"}
+                        onConfirm={() => { router.push({ pathname: "/workout", params: { workoutTemplateId: modals.startWorkout.workoutTemplateId, mesocycleId: modals.startWorkout.mesocycleId }}); modalControls.closeModal("startWorkout") }}
+                        onCancel={() => modalControls.closeModal("startWorkout")}
                     />
                 }
 

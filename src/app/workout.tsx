@@ -1,15 +1,18 @@
-import React, {useEffect, useRef, useState} from 'react';
-import {Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import * as Crypto from "expo-crypto";
+import * as Notifications from 'expo-notifications';
+import {BackHandler, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
 import {useAppSelector} from "@/store/store";
 import CustomHeader from "@/components/CustomHeader";
-import {useLocalSearchParams, useNavigation} from "expo-router";
+import {useFocusEffect, useLocalSearchParams, useNavigation} from "expo-router";
 import {WorkoutUtils} from "@/utils/Storage";
 import useModals from "@/hooks/useModals";
 import ConfirmDialog from "@/components/modal/ConfirmDialog";
-import {ExerciseSetDTO, ExerciseSetType, WorkoutExerciseDTO} from "@/types/workout";
-import * as Crypto from "expo-crypto";
+import {ExerciseSetDTO, ExerciseSetType, TemplateExerciseDTO, WorkoutDTO, WorkoutExerciseDTO} from "@/types/workout";
 import ActionMenu, {AnchorRect} from "@/components/ActionMenu";
+import NotesModal from "@/components/modal/NotesModal";
+import WorkoutExerciseModal from "@/components/modal/WorkoutExerciseModal";
 
 const REST_TIME_OPTIONS = [60, 120, 180];
 
@@ -17,30 +20,50 @@ export default function ActiveWorkoutScreen() {
 
     const navigation = useNavigation();
 
-    const { templateId } = useLocalSearchParams();
+    const { workoutTemplateId, mesocycleId } = useLocalSearchParams();
 
     const { modals, modalControls } = useModals();
 
     const { accentColor } = useAppSelector((state: any) => state.sync);
 
+    const [secondsElapsed, setSecondsElapsed] = useState<number>(0);
+    const [workoutStartTime, setWorkoutStartTime] = useState<number | null>(null);
     const [workoutTitle, setWorkoutTitle] = useState<string>("");
+    const [workoutNotes, setWorkoutNotes] = useState<string>("");
     const [workoutClientId, setWorkoutClientId] = useState<string>("");
     const [exercises, setExercises] = useState<WorkoutExerciseDTO[]>([]);
-    const [secondsElapsed, setSecondsElapsed] = useState(0);
-    const [restTimeRemaining, setRestTimeRemaining] = useState<number | null>(null);
+    const [restEndTime, setRestEndTime] = useState<number | null>(null);
+    const [restTimeRemaining, setRestTimeRemaining] = useState<number>(0);
     const [isResting, setIsResting] = useState(false);
     const [expanded, setExpanded] = useState<string[]>([]);
 
-    // State to manage ActionMenu state and target exercise index
-    const [menuAnchor, setMenuAnchor] = useState<AnchorRect | null>(null);
+    const [exerciseMenuAnchor, setExerciseMenuAnchor] = useState<AnchorRect | null>(null);
     const [selectedExerciseIndex, setSelectedExerciseIndex] = useState<number | null>(null);
-
-    // Reference mapping for button coordinates
     const exerciseButtonRefs = useRef<{ [key: number]: View | null }>({});
 
+    const [exerciseSetMenuAnchor, setExerciseSetMenuAnchor] = useState<AnchorRect | null>(null);
+    const [targetExerciseIndexForSet, setTargetExerciseIndexForSet] = useState<number | null>(null);
+    const addExerciseSetButtonRefs = useRef<{ [key: string]: View | null }>({});
+
     useEffect(() => {
-        if (templateId) {
-            const idString = Array.isArray(templateId) ? templateId[0] : templateId;
+        const onBackPress = () => {
+            modalControls.openModal("discardChanges", {
+                onConfirm: () => {
+                    modalControls.closeModal("discardChanges");
+                    navigation.goBack();
+                }
+            });
+
+            return true;
+        };
+
+        const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+        return () => subscription.remove();
+    }, [navigation]);
+
+    useEffect(() => {
+        if (workoutTemplateId) {
+            const idString = Array.isArray(workoutTemplateId) ? workoutTemplateId[0] : workoutTemplateId;
             const workoutTemplate = WorkoutUtils.getWorkoutTemplate(idString);
 
             if (workoutTemplate) {
@@ -49,88 +72,103 @@ export default function ActiveWorkoutScreen() {
                 if (workoutTemplate.templateExercises) {
                     const generatedWorkoutId = Crypto.randomUUID();
                     setWorkoutClientId(generatedWorkoutId);
-
-                    const mappedExercises: WorkoutExerciseDTO[] = workoutTemplate.templateExercises.map((templateExercise, index) => {
-                        const exerciseDto = WorkoutUtils.getExercise(templateExercise.exerciseClientId);
-
-                        const warmupSets: ExerciseSetDTO[] = Array.from({ length: templateExercise.warmupSets || 0 }, (_, setIdx) => ({
-                            setType: "Warmup" as ExerciseSetType,
-                            setNumber: setIdx + 1,
-                            weight: 0,
-                            targetRepetitions: templateExercise.targetRepetitionsMin,
-                            actualRepetitions: 0,
-                            repetitionsInReserve: 0
-                        }));
-
-                        const workingSets: ExerciseSetDTO[] = Array.from({ length: templateExercise.targetSets }, (_, setIdx) => ({
-                            setType: "Working" as ExerciseSetType,
-                            setNumber: warmupSets.length + setIdx + 1,
-                            weight: 0,
-                            targetRepetitions: templateExercise.targetRepetitionsMin,
-                            actualRepetitions: 0,
-                            repetitionsInReserve: 0
-                        }));
-
-                        return {
-                            workoutClientId: generatedWorkoutId,
-                            exerciseClientId: templateExercise.exerciseClientId,
-                            targetSets: templateExercise.targetSets,
-                            targetRepetitionsMin: templateExercise.targetRepetitionsMin,
-                            targetRepetitionsMax: templateExercise.targetRepetitionsMax,
-                            exercise: exerciseDto,
-                            orderInWorkout: templateExercise.exerciseOrder,
-                            notes: '',
-                            exerciseSets: [...warmupSets, ...workingSets],
-                        };
-                    });
-
-                    setExercises(mappedExercises);
+                    setExercises(handleExerciseMapping(workoutTemplate.templateExercises));
                 }
             }
         }
-    }, [templateId]);
+    }, [workoutTemplateId]);
 
     useEffect(() => {
-        return navigation.addListener('beforeRemove', (e) => {
-            e.preventDefault();
-            modalControls.openModal("discardChanges", {
-                onConfirm: () => {
-                    navigation.dispatch(e.data.action);
-                    modalControls.closeModal("discardChanges");
-                }
-            });
-        });
-    }, [navigation]);
+        const startTime = Date.now();
+        setWorkoutStartTime(startTime);
 
-    useEffect(() => {
         const interval = setInterval(() => {
-            setSecondsElapsed(prev => prev + 1);
+            const currentElapsed = Math.floor((Date.now() - startTime) / 1000);
+            setSecondsElapsed(currentElapsed);
         }, 1000);
+
         return () => clearInterval(interval);
-    }, []);
+    }, [workoutTemplateId]);
+
+    useFocusEffect(
+        useCallback(() => {
+            if (workoutStartTime !== null) {
+                const currentElapsed = Math.floor((Date.now() - workoutStartTime) / 1000);
+                setSecondsElapsed(currentElapsed);
+            }
+        }, [workoutStartTime])
+    );
 
     useEffect(() => {
-        let restInterval: ReturnType<typeof setTimeout> | null = null;
-        if (isResting && restTimeRemaining !== null && restTimeRemaining > 0) {
-            restInterval = setInterval(() => {
-                setRestTimeRemaining(prev => {
-                    if (prev === null || prev <= 1) {
-                        setIsResting(false);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
+        let interval: ReturnType<typeof setTimeout> | null = null;
+
+        if (isResting && restEndTime !== null) {
+            interval = setInterval(() => {
+                const remaining = Math.max(0, Math.floor((restEndTime - Date.now()) / 1000));
+                setRestTimeRemaining(remaining);
+
+                if (remaining === 0) {
+                    setIsResting(false);
+                    setRestEndTime(null);
+                    if (interval) clearInterval(interval);
+                }
             }, 1000);
         }
-        return () => {
-            if (restInterval) clearInterval(restInterval);
-        };
-    }, [isResting, restTimeRemaining]);
 
-    const formatElapsedTime = (totalSeconds: number) => {
-        const mins = Math.floor(totalSeconds / 60);
-        const secs = totalSeconds % 60;
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [isResting, restEndTime]);
+
+    useFocusEffect(
+        useCallback(() => {
+            if (isResting && restEndTime !== null) {
+                const remaining = Math.max(0, Math.floor((restEndTime - Date.now()) / 1000));
+                setRestTimeRemaining(remaining);
+
+                if (remaining === 0) {
+                    setIsResting(false);
+                    setRestEndTime(null);
+                }
+            }
+        }, [isResting, restEndTime])
+    );
+
+    const handleExerciseMapping = (templateExercises: TemplateExerciseDTO[]): WorkoutExerciseDTO[] => {
+        return templateExercises.map((templateExercise) => {
+            const exerciseDto = WorkoutUtils.getExercise(templateExercise.exerciseClientId);
+
+            //TODO -> implement deload logic
+
+            const warmupSets: ExerciseSetDTO[] = Array.from({ length: templateExercise.warmupSets || 0 }, (_, setIdx) => ({
+                setType: "Warmup" as ExerciseSetType,
+                setNumber: setIdx + 1,
+                weight: 0, //TODO -> based on previous performance (mesocycleId) || 0
+                targetRepetitions: templateExercise.targetRepetitionsMin, //TODO -> based on previous performance (mesocycleId) || targetRepetitionsMin
+                actualRepetitions: 0,
+                repetitionsInReserve: 0
+            }));
+
+            const workingSets: ExerciseSetDTO[] = Array.from({ length: templateExercise.targetSets }, (_, setIdx) => ({
+                setType: "Working" as ExerciseSetType,
+                setNumber: setIdx + 1,
+                weight: 0, //TODO -> based on previous performance (mesocycleId) || 0
+                targetRepetitions: templateExercise.targetRepetitionsMin, //TODO -> based on previous performance (mesocycleId) || 0
+                actualRepetitions: 0,
+                repetitionsInReserve: 0
+            }));
+
+            return {
+                workoutClientId: workoutClientId,
+                exerciseClientId: templateExercise.exerciseClientId,
+                targetSets: templateExercise.targetSets,
+                targetRepetitionsMin: templateExercise.targetRepetitionsMin,
+                targetRepetitionsMax: templateExercise.targetRepetitionsMax,
+                orderInWorkout: templateExercise.exerciseOrder,
+                notes: '',
+                exerciseSets: [...warmupSets, ...workingSets],
+            };
+        });
     };
 
     const toggleExerciseExpand = (cardKey: string) => {
@@ -138,6 +176,15 @@ export default function ActiveWorkoutScreen() {
             setExpanded(expanded.filter(key => key !== cardKey));
         } else {
             setExpanded([...expanded, cardKey]);
+        }
+    };
+
+    const handleTargetRepsChange = (exIndex: number, setIndex: number, val: string) => {
+        const updated = [...exercises];
+        const parsedReps = val === '' ? 0 : parseInt(val, 10);
+        if (updated[exIndex].exerciseSets) {
+            updated[exIndex].exerciseSets![setIndex].targetRepetitions = parsedReps;
+            setExercises(updated);
         }
     };
 
@@ -150,22 +197,55 @@ export default function ActiveWorkoutScreen() {
         }
     };
 
-    const handleAddSet = (exIndex: number) => {
+    const handleReserveRepsChange = (exIndex: number, setIndex: number, val: string) => {
         const updated = [...exercises];
-        const currentSets = updated[exIndex].exerciseSets || [];
-        const lastSet = currentSets[currentSets.length - 1];
+        const parsedReps = val === '' ? 0 : parseInt(val, 10);
+        if (updated[exIndex].exerciseSets) {
+            updated[exIndex].exerciseSets![setIndex].repetitionsInReserve = parsedReps;
+            setExercises(updated);
+        }
+    };
+
+    const handleAddSet = (setType: ExerciseSetType) => {
+        if (targetExerciseIndexForSet === null) return;
+        const exIndex = targetExerciseIndexForSet;
+        const updated = [...exercises];
+        const currentSets = [...(updated[exIndex].exerciseSets || [])];
+
+        const referenceSet = currentSets.reverse().find(s => s.setType === setType) || currentSets[0];
 
         const newSet: ExerciseSetDTO = {
-            setType: "Working",
-            setNumber: currentSets.length + 1,
-            weight: lastSet ? lastSet.weight : 0,
-            targetRepetitions: lastSet ? lastSet.targetRepetitions : 10,
+            setType: setType,
+            setNumber: 0,
+            weight: referenceSet ? referenceSet.weight : 0,
+            targetRepetitions: referenceSet ? referenceSet.targetRepetitions : (setType === "Warmup" ? 12 : 10),
             actualRepetitions: 0,
             repetitionsInReserve: 0
         };
 
-        updated[exIndex].exerciseSets = [...currentSets, newSet];
+        currentSets.push(newSet);
+
+        currentSets.sort((a, b) => {
+            if (a.setType === "Warmup" && b.setType !== "Warmup") return -1;
+            if (a.setType !== "Warmup" && b.setType === "Warmup") return 1;
+            return 0;
+        });
+
+        let warmupCount = 0;
+        let workingCount = 0;
+
+        updated[exIndex].exerciseSets = currentSets.map((s) => {
+            if (s.setType === "Warmup") {
+                warmupCount += 1;
+                return {...s, setNumber: warmupCount};
+            } else {
+                workingCount += 1;
+                return {...s, setNumber: workingCount};
+            }
+        });
         setExercises(updated);
+        setExerciseSetMenuAnchor(null);
+        setTargetExerciseIndexForSet(null);
     };
 
     const handleRemoveSet = (exIndex: number, setIndex: number) => {
@@ -178,7 +258,7 @@ export default function ActiveWorkoutScreen() {
         }
     };
 
-    const moveExercise = (direction: number) => {
+    const handleMoveExercise = (direction: number) => {
         if (selectedExerciseIndex === null) return;
         const newIndex = selectedExerciseIndex + direction;
         if (newIndex < 0 || newIndex >= exercises.length) return;
@@ -188,49 +268,119 @@ export default function ActiveWorkoutScreen() {
         updated[selectedExerciseIndex] = updated[newIndex];
         updated[newIndex] = temp;
 
-        // Recalculate order numbers
         updated.forEach((ex, idx) => { ex.orderInWorkout = idx + 1; });
 
         setExercises(updated);
         setSelectedExerciseIndex(newIndex);
-        setMenuAnchor(null);
+        setExerciseMenuAnchor(null);
     };
 
-    const removeExercise = () => {
+    const handleRemoveExercise = () => {
         if (selectedExerciseIndex === null) return;
         const updated = exercises.filter((_, i) => i !== selectedExerciseIndex);
         updated.forEach((ex, idx) => { ex.orderInWorkout = idx + 1; });
         setExercises(updated);
         setSelectedExerciseIndex(null);
-        setMenuAnchor(null);
+        setExerciseMenuAnchor(null);
     };
 
-    const handleAddExercise = () => {
-        const newEx: WorkoutExerciseDTO = {
-            workoutClientId: workoutClientId,
-            exerciseClientId: '', // Assign selected exercise ID from your exercise picker flow
-            targetSets: 3,
-            targetRepetitionsMin: 10,
-            targetRepetitionsMax: 12,
-            orderInWorkout: exercises.length + 1,
-            notes: '',
-            exerciseSets: [
-                { setType: 'Working', setNumber: 1, weight: 0, targetRepetitions: 10, actualRepetitions: 0, repetitionsInReserve: 0 }
-            ]
-        };
-        setExercises([...exercises, newEx]);
+    const handleAddExercise = (addedExercise: WorkoutExerciseDTO) => {
+        const updated = [...exercises];
+        updated.push(addedExercise);
+        setExercises(updated);
     };
 
     const handleHistoryPress = () => {
-        // Open exercise/workout history modal or route
+
+    };
+
+    const handleCompleteWorkout = () => {
+
+        const workoutTemplateClientId = Array.isArray(workoutTemplateId) ? workoutTemplateId[0] : workoutTemplateId;
+
+        const completedWorkout: WorkoutDTO = {
+            metadata: {
+                clientId: workoutClientId
+            },
+            completedAt: new Date().toString(),
+            workoutTemplateClientId: workoutTemplateClientId,
+            exercises: exercises,
+            notes: workoutNotes,
+            isDeload: WorkoutUtils.getWorkoutTemplate(workoutTemplateClientId)!.isDeload,
+            name: workoutTitle
+        };
+
+        WorkoutUtils.addWorkout(completedWorkout);
+        navigation.goBack();
     };
 
     const handleOpenExerciseMenu = (exIndex: number) => {
         setSelectedExerciseIndex(exIndex);
         const refNode = exerciseButtonRefs.current[exIndex];
         refNode?.measureInWindow((x, y, width, height) => {
-            setMenuAnchor({ x, y, width, height });
+            setExerciseMenuAnchor({ x, y, width, height });
         });
+    };
+
+    const handleOpenAddSetMenu = (exIndex: number, setKey: string) => {
+        setTargetExerciseIndexForSet(exIndex);
+        const refNode = addExerciseSetButtonRefs.current[setKey];
+        refNode?.measureInWindow((x, y, width, height) => {
+            setExerciseSetMenuAnchor({ x, y, width, height });
+        });
+    };
+
+    const startRestTimerWithNotification = async (durationInSeconds: number) => {
+        const targetTime = Date.now() + (durationInSeconds * 1000);
+        setRestEndTime(targetTime);
+        setRestTimeRemaining(durationInSeconds);
+        setIsResting(true);
+
+        await Notifications.dismissAllNotificationsAsync();
+
+        await Notifications.scheduleNotificationAsync({
+            content: {
+                title: "Rest Over! 🏋️‍♂️",
+                body: "Time for your next set.",
+                sound: true,
+            },
+            trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+                seconds: durationInSeconds,
+                repeats: false,
+            },
+        });
+    };
+
+    const resetRestTimer = async () => {
+        setIsResting(false);
+        setRestTimeRemaining(0);
+        await Notifications.dismissAllNotificationsAsync();
+    };
+
+    const formatToMinutes = (totalSeconds: number) => {
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+
+        if (secs === 0) {
+            return `${mins}m`;
+        }
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const formatElapsedTime = (totalSeconds: number) => {
+        const hours = Math.floor(totalSeconds / 3600);
+        const mins = Math.floor((totalSeconds % 3600) / 60);
+        const secs = totalSeconds % 60;
+
+        const paddedMins = mins.toString().padStart(2, '0');
+        const paddedSecs = secs.toString().padStart(2, '0');
+
+        if (hours > 0) {
+            return `${hours}:${paddedMins}:${paddedSecs}`;
+        }
+
+        return `${paddedMins}:${paddedSecs}`;
     };
 
     return (
@@ -246,7 +396,13 @@ export default function ActiveWorkoutScreen() {
                         <Text style={styles.workoutTitle}>{workoutTitle}</Text>
                         <Text style={styles.workoutDate}>Today, {new Date().toLocaleDateString()}</Text>
                     </View>
-                    <TouchableOpacity style={styles.notesBadge} onPress={() => modalControls.openModal("workoutNotes")}>
+                    <TouchableOpacity
+                        style={styles.notesBadge}
+                        onPress={() => modalControls.openModal("notes", {
+                            title: "Workout Notes",
+                            initialNotes: workoutNotes,
+                            onSave: setWorkoutNotes,
+                        })}>
                         <Text style={styles.timerText}>Notes</Text>
                         <Ionicons name="document-text" size={20} color={accentColor} />
                     </TouchableOpacity>
@@ -264,14 +420,14 @@ export default function ActiveWorkoutScreen() {
                             <TouchableOpacity
                                 key={option}
                                 style={[styles.restBtn, { backgroundColor: accentColor }]}
-                                onPress={() => { setRestTimeRemaining(option); setIsResting(true); }}
+                                onPress={() => startRestTimerWithNotification(option)}
                             >
-                                <Text style={styles.restBtnText}>{option}s</Text>
+                                <Text style={styles.restBtnText}>{formatToMinutes(option)}</Text>
                             </TouchableOpacity>
                         ))}
                         <TouchableOpacity
                             style={styles.restBtnSecondary}
-                            onPress={() => { setIsResting(false); setRestTimeRemaining(null); }}
+                            onPress={resetRestTimer}
                         >
                             <Text style={styles.restBtnSecondaryText}>Reset</Text>
                         </TouchableOpacity>
@@ -280,7 +436,8 @@ export default function ActiveWorkoutScreen() {
 
                 {exercises.map((exercise, exIndex) => {
                     const exerciseInfo = WorkoutUtils.getExercise(exercise.exerciseClientId);
-                    const exerciseName = exerciseInfo?.name || "Custom Exercise";
+                    const exerciseName = exerciseInfo!.name;
+                    const exerciseVariation = exerciseInfo!.variation;
                     const cardKey = exercise.workoutClientId + "-" + exercise.exerciseClientId + "-" + exIndex;
                     const isExpanded = expanded.includes(cardKey);
 
@@ -292,7 +449,7 @@ export default function ActiveWorkoutScreen() {
                             >
                                 <View style={styles.exerciseTitleWrapper}>
                                     <Text style={styles.exerciseIndexNumber}>{exIndex + 1}.</Text>
-                                    <Text style={styles.exerciseTitleText}>{exerciseName}</Text>
+                                    <Text style={styles.exerciseTitleText}>{exerciseVariation ? exerciseName.concat(" • ").concat(exerciseVariation) : exerciseName}</Text>
                                 </View>
                                 <View style={styles.exerciseHeaderActions}>
                                     <TouchableOpacity
@@ -312,20 +469,29 @@ export default function ActiveWorkoutScreen() {
 
                             {isExpanded && (
                                 <View style={styles.setsContainer}>
-                                    <View style={styles.setHeaderRow}>
-                                        <Text style={[styles.setHeaderText, { flex: 0.8 }]}>Set</Text>
-                                        <Text style={[styles.setHeaderText, { flex: 1.2 }]}>Type</Text>
-                                        <Text style={[styles.setHeaderText, { flex: 1 }]}>Target</Text>
-                                        <Text style={[styles.setHeaderText, { flex: 1 }]}>Actual</Text>
-                                        <View style={{ width: 30 }} />
-                                    </View>
+                                    {Boolean(exercise.exerciseSets?.length) && <View style={styles.setHeaderRow}>
+                                        <Text style={[styles.setHeaderText, {flex: 0.8}]}>Set</Text>
+                                        <Text style={[styles.setHeaderText, {flex: 1.2}]}>Type</Text>
+                                        <Text style={[styles.setHeaderText, {flex: 1}]}>Target*</Text>
+                                        <Text style={[styles.setHeaderText, {flex: 1}]}>Actual*</Text>
+                                        <Text style={[styles.setHeaderText, {flex: 1}]}>Reserve</Text>
+                                        <View style={{width: 30}}/>
+                                    </View>}
 
                                     {exercise.exerciseSets?.map((set, setIndex) => (
                                         <View key={setIndex} style={styles.setRow}>
                                             <Text style={[styles.setText, { flex: 0.8 }]}>{set.setNumber}</Text>
-                                            <Text style={[styles.setText, { flex: 1.2, color: accentColor, fontSize: 12 }]}>{set.setType}</Text>
-                                            <Text style={[styles.setText, { flex: 1 }]}>{set.targetRepetitions}</Text>
-
+                                            <Text style={[styles.setText, { flex: 1.2, color: set.setType === "Working" ? accentColor : '#FFFFFF', fontSize: 12 }]}>
+                                                {set.setType}
+                                            </Text>
+                                            <TextInput
+                                                style={styles.actualInput}
+                                                placeholder="—"
+                                                placeholderTextColor="#666"
+                                                keyboardType="numeric"
+                                                value={set.targetRepetitions.toString()}
+                                                onChangeText={(val) => handleTargetRepsChange(exIndex, setIndex, val)}
+                                            />
                                             <TextInput
                                                 style={styles.actualInput}
                                                 placeholder="—"
@@ -334,19 +500,28 @@ export default function ActiveWorkoutScreen() {
                                                 value={set.actualRepetitions !== undefined && set.actualRepetitions !== null ? set.actualRepetitions.toString() : ''}
                                                 onChangeText={(val) => handleActualRepsChange(exIndex, setIndex, val)}
                                             />
+                                            <TextInput
+                                                style={styles.actualInput}
+                                                placeholder="—"
+                                                placeholderTextColor="#666"
+                                                keyboardType="numeric"
+                                                value={set.repetitionsInReserve?.toString()}
+                                                onChangeText={(val) => handleReserveRepsChange(exIndex, setIndex, val)}
+                                            />
 
                                             <TouchableOpacity
                                                 style={styles.removeSetBtn}
                                                 onPress={() => handleRemoveSet(exIndex, setIndex)}
                                             >
-                                                <Ionicons name="close-circle-outline" size={18} color="#ff5252" />
+                                                <Ionicons name="trash-outline" size={18} color="#ff5252" />
                                             </TouchableOpacity>
                                         </View>
                                     ))}
 
                                     <TouchableOpacity
+                                        ref={(el) => { addExerciseSetButtonRefs.current[`ex-${exIndex}`] = el; }}
                                         style={styles.addSetButton}
-                                        onPress={() => handleAddSet(exIndex)}
+                                        onPress={() => handleOpenAddSetMenu(exIndex, `ex-${exIndex}`)}
                                     >
                                         <Ionicons name="add" size={16} color={accentColor} />
                                         <Text style={[styles.addSetText, { color: accentColor }]}>Add Set</Text>
@@ -357,55 +532,22 @@ export default function ActiveWorkoutScreen() {
                     );
                 })}
 
-                <TouchableOpacity style={styles.addExerciseButton} onPress={handleAddExercise}>
-                    <Ionicons name="add-circle" size={20} color="#FFF" />
-                    <Text style={styles.addExerciseButtonText}>Add Exercise</Text>
-                </TouchableOpacity>
-
                 <View style={styles.footerButtonsRow}>
                     <TouchableOpacity
-                        style={styles.discardButton}
-                        onPress={() => modalControls.openModal("discardChanges", { onConfirm: () => navigation.goBack()})}
+                        style={styles.addExerciseButton}
+                        onPress={() => modalControls.openModal("addExercise")}
                     >
-                        <Text style={styles.discardButtonText}>Discard Workout</Text>
+                        <Ionicons name="add-circle" size={20} color="#FFF" />
+                        <Text style={styles.addExerciseButtonText}>Add Exercise</Text>
                     </TouchableOpacity>
-
                     <TouchableOpacity
                         style={[styles.completeButton, { backgroundColor: accentColor }]}
-                        onPress={() => console.log("Complete Workout Payload Sent", JSON.stringify(exercises, null, 2))}
+                        onPress={() => modalControls.openModal("completeWorkout")}
                     >
                         <Text style={styles.completeButtonText}>Complete Workout</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
-
-            <ActionMenu
-                visible={menuAnchor !== null}
-                anchorRect={menuAnchor}
-                onClose={() => setMenuAnchor(null)}
-                items={[
-                    {
-                        label: 'Notes',
-                        icon: 'document-text',
-                        onPress: () => modalControls.openModal("exerciseNotes")
-                    },
-                    {
-                        label: 'Move Up',
-                        icon: 'chevron-up',
-                        onPress: () => moveExercise(-1)
-                    },
-                    {
-                        label: 'Move Down',
-                        icon: 'chevron-down',
-                        onPress: () => moveExercise(1),
-                    },
-                    {
-                        label: 'Remove Exercise',
-                        icon: 'trash',
-                        onPress: () => removeExercise(),
-                    },
-                ]}
-            />
 
             {modals.discardChanges?.isOpen &&
                 <ConfirmDialog
@@ -413,9 +555,106 @@ export default function ActiveWorkoutScreen() {
                     visible={modals.discardChanges.isOpen}
                     message={"All progress in this session will be lost."}
                     onConfirm={modals.discardChanges.onConfirm}
-                    onCancel={() => modalControls.closeModal("discardChanges")}
+                    onCancel={() => {
+                        modalControls.closeModal("discardChanges");
+                    }}
                 />
             }
+
+            {modals.completeWorkout?.isOpen &&
+                <ConfirmDialog
+                    title={"Complete workout"}
+                    visible={modals.completeWorkout.isOpen}
+                    message={"This will end and save the current workout session."}
+                    onConfirm={handleCompleteWorkout}
+                    onCancel={() => {
+                        modalControls.closeModal("completeWorkout");
+                    }}
+                />
+            }
+
+            {modals.notes?.isOpen &&
+                <NotesModal
+                    visible={modals.notes.isOpen}
+                    title={modals.notes.title}
+                    initialNotes={modals.notes.initialNotes}
+                    onClose={() => modalControls.closeModal("notes")}
+                    onSave={modals.notes.onSave}
+                />
+            }
+
+            {modals.addExercise?.isOpen &&
+                <WorkoutExerciseModal
+                    visible={modals.addExercise.isOpen}
+                    workoutClientId={workoutClientId}
+                    orderInWorkout={exercises.length + 1}
+                    onClose={() => modalControls.closeModal("addExercise")}
+                    onSave={handleAddExercise}
+                />
+            }
+
+            <ActionMenu
+                visible={exerciseMenuAnchor !== null}
+                anchorRect={exerciseMenuAnchor}
+                onClose={() => setExerciseMenuAnchor(null)}
+                items={[
+                    {
+                        label: 'Notes',
+                        icon: 'document-text',
+                        onPress: () => modalControls.openModal("notes", {
+                            title: "Exercise Notes",
+                            initialNotes: exercises[selectedExerciseIndex!].notes,
+                            onSave: (updatedNotes: string) => {
+                                const updated = [...exercises];
+                                updated[selectedExerciseIndex!].notes = updatedNotes;
+                                setExercises(updated);
+                            }
+                        })
+                    },
+                    ...(mesocycleId ? [{
+                        label: 'History',
+                        icon: 'time' as const,
+                        onPress: () => modalControls.openModal("exerciseHistory")
+                    }] : []),
+                    ...(selectedExerciseIndex !== null && selectedExerciseIndex > 0 ? [{
+                        label: 'Move Up',
+                        icon: 'chevron-up' as const,
+                        onPress: () => handleMoveExercise(-1)
+                    }] : []),
+                    ...(selectedExerciseIndex !== null && selectedExerciseIndex < exercises.length - 1 ? [{
+                        label: 'Move Down',
+                        icon: 'chevron-down' as const,
+                        onPress: () => handleMoveExercise(1),
+                    }] : []),
+                    {
+                        label: 'Remove Exercise',
+                        icon: 'trash',
+                        onPress: () => handleRemoveExercise(),
+                    },
+                ]}
+            />
+
+            <ActionMenu
+                visible={exerciseSetMenuAnchor !== null}
+                anchorRect={exerciseSetMenuAnchor}
+                onClose={() => {
+                    setExerciseSetMenuAnchor(null);
+                    setTargetExerciseIndexForSet(null);
+                }}
+                items={[
+                    {
+                        label: 'Warmup Set',
+                        icon: 'sunny-outline',
+                        onPress: () => handleAddSet("Warmup")
+                    },
+                    {
+                        label: 'Working Set',
+                        icon: 'barbell-outline',
+                        color: accentColor,
+                        onPress: () => handleAddSet("Working")
+                    },
+                ]}
+            />
         </View>
     );
 }
@@ -558,6 +797,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginVertical: 6,
+        gap: 2
     },
     setText: {
         color: '#FFFFFF',
@@ -603,7 +843,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         gap: 8,
-        marginBottom: 24,
     },
     addExerciseButtonText: {
         color: '#FFFFFF',
@@ -611,8 +850,7 @@ const styles = StyleSheet.create({
         fontSize: 15,
     },
     footerButtonsRow: {
-        flexDirection: 'row',
-        gap: 12,
+        gap: 8,
     },
     discardButton: {
         flex: 1,

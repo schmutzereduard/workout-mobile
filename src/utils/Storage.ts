@@ -205,6 +205,21 @@ export class WorkoutUtils {
         return this.getWorkouts().find(workout => workout.metadata.clientId === workoutClientId) || null;
     };
 
+    static addWorkout(workout: WorkoutDTO): void {
+        const metadata: SyncMetadata = {
+            ...workout.metadata,
+            createdAt: new Date().toISOString()
+        }
+        const newWorkout: WorkoutDTO = {
+            ...workout,
+            metadata: metadata
+        }
+        const workouts = this.getWorkouts();
+        const newWorkouts = [...workouts, newWorkout];
+        console.log(newWorkouts);
+        // storage.set(StorageKeys.WORKOUTS, JSON.stringify(newWorkouts));
+    }
+
     static getWorkoutByDate(date: string): WorkoutDTO | null {
         const workouts = this.getWorkouts();
         if (!workouts) return null;
@@ -441,7 +456,6 @@ export const LocalStorage = {
     getString(key: string): string | undefined {
         return storage.getString(key);
     },
-
     delete(key: string): void {
         storage.remove(key);
     },

@@ -24,6 +24,15 @@ function InitialLayout() {
         dispatch(refreshTheme());
     }, []);
 
+    useEffect(() => {
+        (async () => {
+            const { status } = await Notifications.getPermissionsAsync();
+            if (status !== 'granted') {
+                await Notifications.requestPermissionsAsync();
+            }
+        })();
+    }, []);
+
     //TODO -> uncomment
     // useEffect(() => {
     //     const inAuthGroup = segments[0] === 'login';
@@ -37,7 +46,6 @@ function InitialLayout() {
 
     Notifications.setNotificationHandler({
         handleNotification: async () => ({
-            shouldShowAlert: true,
             shouldPlaySound: true,
             shouldSetBadge: false,
             shouldShowBanner: true,

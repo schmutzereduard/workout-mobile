@@ -89,7 +89,7 @@ export default function WorkoutTemplatesScreen() {
     };
 
     const handlePlayPress = (templateId: string) => {
-        modalControls.openModal("startWorkout", { templateId: templateId });
+        modalControls.openModal("startWorkout", { workoutTemplateId: templateId });
     };
 
     const filteredTemplates = workoutTemplates.filter(item =>
@@ -211,7 +211,7 @@ export default function WorkoutTemplatesScreen() {
                     title={"Start Workout"}
                     visible={modals.startWorkout.isOpen}
                     message={"Do you want to start the workout?"}
-                    onConfirm={() => { router.push({ pathname: "/workout", params: { templateId: modals.startWorkout.templateId }}); modalControls.closeModal("startWorkout") }}
+                    onConfirm={() => { router.push({ pathname: "/workout", params: { workoutTemplateId: modals.startWorkout.workoutTemplateId }}); modalControls.closeModal("startWorkout") }}
                     onCancel={() => modalControls.closeModal("startWorkout")}
                 />
             }
