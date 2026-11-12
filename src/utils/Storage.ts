@@ -122,7 +122,7 @@ export class WorkoutUtils {
 
     static getWorkoutTemplate(workoutTemplateClientId: string): WorkoutTemplateDTO | null {
         return this.getWorkoutTemplates().find(workoutTemplate => workoutTemplate.metadata.clientId === workoutTemplateClientId && !workoutTemplate.metadata.deletedAt) || null;
-    }
+    };
 
     static addWorkoutTemplate(workoutTemplate: WorkoutTemplateDTO): void {
         const metadata: SyncMetadata = {
@@ -141,7 +141,7 @@ export class WorkoutUtils {
     static editWorkoutTemplate(workoutTemplate: WorkoutTemplateDTO): void {
 
         const workoutTemplates = this.getWorkoutTemplates();
-        const existing = workoutTemplates.find(wt => wt.metadata.deletedAt === workoutTemplate.metadata.clientId);
+        const existing = workoutTemplates.find(wt => wt.metadata.clientId === workoutTemplate.metadata.clientId);
         if (!existing)
             return;
 
@@ -190,7 +190,7 @@ export class WorkoutUtils {
 
     static getMesocycle(mesocycleClientId: string): MesocycleDTO | null {
         return this.getMesocycles().find(mesocycle => mesocycle.metadata.clientId === mesocycleClientId) || null;
-    }
+    };
 
     static getWorkouts(): WorkoutDTO[] {
 
@@ -200,6 +200,11 @@ export class WorkoutUtils {
 
         return JSON.parse(workouts);
     };
+
+    static getWorkoutsByWorkoutTemplate(workoutTemplateClientId: string): WorkoutDTO[] {
+
+        return this.getWorkouts().filter(workout => workout.workoutTemplateClientId === workoutTemplateClientId);
+    }
 
     static getWorkout(workoutClientId: string): WorkoutDTO | null {
         return this.getWorkouts().find(workout => workout.metadata.clientId === workoutClientId) || null;
@@ -216,9 +221,8 @@ export class WorkoutUtils {
         }
         const workouts = this.getWorkouts();
         const newWorkouts = [...workouts, newWorkout];
-        console.log(newWorkouts);
-        // storage.set(StorageKeys.WORKOUTS, JSON.stringify(newWorkouts));
-    }
+        storage.set(StorageKeys.WORKOUTS, JSON.stringify(newWorkouts));
+    };
 
     static getWorkoutByDate(date: string): WorkoutDTO | null {
         const workouts = this.getWorkouts();
@@ -249,14 +253,6 @@ export class WorkoutUtils {
     static getMesocycleTemplate(mesocycleTemplateClientId: string): MesocycleTemplateDTO | null {
         return this.getMesocycleTemplates().find(mesocycleTemplate => mesocycleTemplate.clientId === mesocycleTemplateClientId) || null;
     };
-
-    static getMesocycleTemplatesByMesocycle(mesocycleClientId: string): MesocycleTemplateDTO[] {
-        return this.getMesocycleTemplates().filter(mesocycleTemplate => mesocycleTemplate.mesocycleClientId === mesocycleClientId);
-    };
-
-    static getMesocycleTemplatesByWorkoutTemplate(workoutTemplateClientId: string): MesocycleTemplateDTO[] {
-        return this.getMesocycleTemplates().filter(mesocycleTemplate => mesocycleTemplate.workoutTemplateClientId === workoutTemplateClientId);
-    }
 
     static getActiveMesocycle(): MesocycleDTO | null {
         const todayDate = new Date().toISOString().split('T')[0];
@@ -347,7 +343,7 @@ export class WorkoutUtils {
         const mesocycles = this.getMesocycles();
         const newMesocycles = [...mesocycles, newMesocycle];
         storage.set(StorageKeys.MESOCYCLES, JSON.stringify(newMesocycles));
-    }
+    };
 
     static editMesocycle(mesocycle: MesocycleDTO): void {
 
@@ -404,7 +400,7 @@ export class UserUtils {
         };
 
         storage.set(StorageKeys.USER_PREFERENCES, JSON.stringify(updatedPreferences));
-    }
+    };
 
     static getUserProfile(): UserProfileDTO | null {
         const profile = storage.getString(StorageKeys.USER_PROFILE);
@@ -435,7 +431,7 @@ export class UserUtils {
         };
 
         storage.set(StorageKeys.USER_PROFILE, JSON.stringify(updatedProfile));
-    }
+    };
 }
 
 const hasObjectChanged = <T extends { metadata?: any }>(existing: T, incoming: T): boolean => {
@@ -456,6 +452,7 @@ export const LocalStorage = {
     getString(key: string): string | undefined {
         return storage.getString(key);
     },
+
     delete(key: string): void {
         storage.remove(key);
     },

@@ -100,8 +100,8 @@ export default function WorkoutTemplateModal({
 
     const handleEditExerciseSave = (updatedExercise: TemplateExerciseDTO) => {
         const updatedList = templateExercises.map(item =>
-            item.clientId === updatedExercise.exerciseClientId
-                ? { ...updatedExercise, clientId: updatedExercise.clientId, exerciseOrder: item.exerciseOrder }
+            (item.clientId === updatedExercise.clientId || item.id === updatedExercise.id)
+                ? { ...updatedExercise, exerciseOrder: item.exerciseOrder }
                 : item
         );
 
@@ -210,7 +210,7 @@ export default function WorkoutTemplateModal({
                                         <TouchableOpacity
                                             key={index}
                                             style={styles.exerciseCard}
-                                            onPress={() => modalControls.openModal("editTemplateExercise", { exerciseId: item.id })}
+                                            onPress={() => modalControls.openModal("editTemplateExercise", { exerciseId: item.clientId })}
                                         >
                                             <View style={styles.exerciseCardInfo}>
                                                 <Text style={styles.exerciseNameText}>
@@ -299,7 +299,7 @@ export default function WorkoutTemplateModal({
                         <TemplateExerciseModal
                             visible={modals.editTemplateExercise?.isOpen}
                             workoutTemplateClientId={workoutTemplateId}
-                            initialData={templateExercises.find(item => item.clientId === modals.editTemplateExercise.clientId)}
+                            initialData={templateExercises.find(item => item.clientId === modals.editTemplateExercise.exerciseId)}
                             onSave={handleEditExerciseSave}
                             onClose={() => modalControls.closeModal("editTemplateExercise")}
                         />

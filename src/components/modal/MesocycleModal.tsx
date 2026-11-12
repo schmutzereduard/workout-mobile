@@ -55,6 +55,8 @@ export default function MesocycleModal({
     const [scheduledWorkouts, setScheduledWorkouts] = useState<MesocycleTemplateDTO[]>([]);
     const [error, setError] = useState("");
 
+    const [editingTemplateIndex, setEditingTemplateIndex] = useState<number | null>(null);
+
     const mesocycles = useStorageListener(
         [StorageKeys.MESOCYCLES, StorageKeys.WORKOUT_TEMPLATES],
         () => WorkoutUtils.getMesocycles()
@@ -112,16 +114,20 @@ export default function MesocycleModal({
 
     const handleSaveTemplateSlot = (slotData: MesocycleTemplateDTO) => {
         setScheduledWorkouts(prev => {
-            const existsIndex = prev.findIndex(item => item.clientId === slotData.clientId);
-
-            if (existsIndex >= 0) {
+            if (editingTemplateIndex !== null) {
                 const updated = [...prev];
-                updated[existsIndex] = slotData;
+                updated[editingTemplateIndex] = {
+                    ...updated[editingTemplateIndex],
+                    workoutTemplateClientId: slotData.workoutTemplateClientId,
+                    weekNumber: slotData.weekNumber, // <-- Ensure weekNumber updates correctly
+                    dayNumber: slotData.dayNumber,     // <-- Ensure dayNumber updates correctly
+                };
                 return updated;
             } else {
                 return [...prev, slotData];
             }
         });
+        setEditingTemplateIndex(null);
     };
 
     const handleRemoveScheduledWorkout = (index: number) => {
@@ -375,7 +381,10 @@ export default function MesocycleModal({
                                     <View key={slot.id || index} style={styles.slotItem}>
                                         <TouchableOpacity
                                             style={{ flex: 1 }}
-                                            onPress={() => modalControls.openModal("editTemplate", { templateIndex: index })}
+                                            onPress={() => {
+                                                modalControls.openModal("editTemplate", { templateIndex: index });
+                                                setEditingTemplateIndex(index);
+                                            }}
                                         >
                                             <Text style={styles.slotTitle}>{getTemplateName(slot.workoutTemplateClientId || "")}</Text>
                                             <Text style={styles.slotSub}>Week {slot.weekNumber} • Day {slot.dayNumber}</Text>

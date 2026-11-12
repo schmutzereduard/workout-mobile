@@ -6,13 +6,22 @@ import {Ionicons} from '@expo/vector-icons';
 import {useAppSelector} from "@/store/store";
 import CustomHeader from "@/components/CustomHeader";
 import {useFocusEffect, useLocalSearchParams, useNavigation} from "expo-router";
-import {WorkoutUtils} from "@/utils/Storage";
+import {UserUtils, WorkoutUtils} from "@/utils/Storage";
 import useModals from "@/hooks/useModals";
 import ConfirmDialog from "@/components/modal/ConfirmDialog";
-import {ExerciseSetDTO, ExerciseSetType, TemplateExerciseDTO, WorkoutDTO, WorkoutExerciseDTO} from "@/types/workout";
+import {
+    ExerciseDTO,
+    ExerciseSetDTO,
+    ExerciseSetType,
+    TemplateExerciseDTO,
+    WorkoutDTO,
+    WorkoutExerciseDTO,
+    WorkoutTemplateDTO
+} from "@/types/workout";
 import ActionMenu, {AnchorRect} from "@/components/ActionMenu";
 import NotesModal from "@/components/modal/NotesModal";
 import WorkoutExerciseModal from "@/components/modal/WorkoutExerciseModal";
+import ExerciseModal from "@/components/modal/ExerciseModal";
 
 const REST_TIME_OPTIONS = [60, 120, 180];
 
@@ -45,6 +54,9 @@ export default function ActiveWorkoutScreen() {
     const [targetExerciseIndexForSet, setTargetExerciseIndexForSet] = useState<number | null>(null);
     const addExerciseSetButtonRefs = useRef<{ [key: string]: View | null }>({});
 
+    const [addExerciseMenuAnchor, setAddExerciseMenuAnchor] = useState<AnchorRect | null>(null);
+    const addExerciseButtonRef = useRef<View | null>(null);
+
     useEffect(() => {
         const onBackPress = () => {
             modalControls.openModal("discardChanges", {
@@ -72,7 +84,7 @@ export default function ActiveWorkoutScreen() {
                 if (workoutTemplate.templateExercises) {
                     const generatedWorkoutId = Crypto.randomUUID();
                     setWorkoutClientId(generatedWorkoutId);
-                    setExercises(handleExerciseMapping(workoutTemplate.templateExercises));
+                    setExercises(handleExercisesMapping(workoutTemplate));
                 }
             }
         }
@@ -134,16 +146,22 @@ export default function ActiveWorkoutScreen() {
         }, [isResting, restEndTime])
     );
 
-    const handleExerciseMapping = (templateExercises: TemplateExerciseDTO[]): WorkoutExerciseDTO[] => {
-        return templateExercises.map((templateExercise) => {
-            const exerciseDto = WorkoutUtils.getExercise(templateExercise.exerciseClientId);
+    const handleExercisesMapping = (workoutTemplate: WorkoutTemplateDTO): WorkoutExerciseDTO[] => {
 
-            //TODO -> implement deload logic
+        const templateExercises = workoutTemplate.templateExercises || [];
+        const idString = Array.isArray(mesocycleId) ? mesocycleId[0] : mesocycleId;
+        const completedWorkouts = WorkoutUtils.getCompletedWorkoutsInMesocycle(idString).filter(workout => workout.workoutTemplateClientId === workoutTemplateId);
+        const lastCompletedWorkout = completedWorkouts.sort((a, b) =>
+            new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+        )[0];
+        const isDeload = workoutTemplate.isDeload || false;
+        
+        return templateExercises.map((templateExercise) => {
 
             const warmupSets: ExerciseSetDTO[] = Array.from({ length: templateExercise.warmupSets || 0 }, (_, setIdx) => ({
                 setType: "Warmup" as ExerciseSetType,
                 setNumber: setIdx + 1,
-                weight: 0, //TODO -> based on previous performance (mesocycleId) || 0
+                weight: handleExerciseSetWeight(templateExercise, lastCompletedWorkout, setIdx + 1, "Warmup", isDeload),
                 targetRepetitions: templateExercise.targetRepetitionsMin, //TODO -> based on previous performance (mesocycleId) || targetRepetitionsMin
                 actualRepetitions: 0,
                 repetitionsInReserve: 0
@@ -152,7 +170,7 @@ export default function ActiveWorkoutScreen() {
             const workingSets: ExerciseSetDTO[] = Array.from({ length: templateExercise.targetSets }, (_, setIdx) => ({
                 setType: "Working" as ExerciseSetType,
                 setNumber: setIdx + 1,
-                weight: 0, //TODO -> based on previous performance (mesocycleId) || 0
+                weight: handleExerciseSetWeight(templateExercise, lastCompletedWorkout, setIdx + 1, "Working", isDeload),
                 targetRepetitions: templateExercise.targetRepetitionsMin, //TODO -> based on previous performance (mesocycleId) || 0
                 actualRepetitions: 0,
                 repetitionsInReserve: 0
@@ -171,11 +189,87 @@ export default function ActiveWorkoutScreen() {
         });
     };
 
+    const handleExerciseSetWeight = (
+        templateExercise: TemplateExerciseDTO,
+        lastCompletedWorkout: WorkoutDTO,
+        setNumber: number,
+        setType: ExerciseSetType,
+        isDeload: boolean
+    ): number => {
+
+        const defaultValue = 0;
+        const userPreferences = UserUtils.getUserPreferences()!;
+
+        if (!lastCompletedWorkout)
+            return defaultValue;
+
+        const lastCompletedExercise = lastCompletedWorkout.exercises?.find(
+            exercise => exercise.exerciseClientId === templateExercise.exerciseClientId
+        );
+
+        if (!lastCompletedExercise || !lastCompletedExercise.exerciseSets || lastCompletedExercise.exerciseSets.length === 0)
+            return defaultValue;
+
+        const previousSet = lastCompletedExercise.exerciseSets.find(
+            exerciseSet => exerciseSet.setType === setType && exerciseSet.setNumber === setNumber
+        ) || lastCompletedExercise.exerciseSets[lastCompletedExercise.exerciseSets.length - 1];
+        if (!previousSet)
+            return defaultValue;
+
+        const lastWeightUsed = previousSet.weight;
+        if (isDeload) {
+            const deloadPercentage = userPreferences.deloadIntensityPercentage;
+            const reducedWeight = lastWeightUsed * (1 - deloadPercentage / 100);
+
+            return Math.max(0, Math.round(reducedWeight / 2.5) * 2.5);
+        }
+
+        if (templateExercise.targetRepetitionsMin === templateExercise.targetRepetitionsMax) { //Linear
+            const targetReps = templateExercise.targetRepetitionsMax;
+
+            const allSetsHitTarget = lastCompletedExercise.exerciseSets.every(
+                exerciseSet => (exerciseSet.actualRepetitions) >= targetReps
+            );
+
+            if (allSetsHitTarget) {
+                const increment = userPreferences.progressiveOverloadIncrement;
+                return lastWeightUsed + increment;
+            } else {
+                return lastWeightUsed;
+            }
+
+        } else if (templateExercise.targetRepetitionsMax > templateExercise.targetRepetitionsMin) { //Double
+            const maxRepRange = templateExercise.targetRepetitionsMax;
+
+            const allSetsHitTopOfRange = lastCompletedExercise.exerciseSets.every(
+                exerciseSet => (exerciseSet.actualRepetitions) >= maxRepRange
+            );
+
+            if (allSetsHitTopOfRange) {
+                const increment = userPreferences.progressiveOverloadIncrement;
+                return lastWeightUsed + increment;
+            } else {
+                return lastWeightUsed;
+            }
+        } else {
+            return defaultValue;
+        }
+    };
+
     const toggleExerciseExpand = (cardKey: string) => {
         if (expanded.includes(cardKey)) {
             setExpanded(expanded.filter(key => key !== cardKey));
         } else {
             setExpanded([...expanded, cardKey]);
+        }
+    };
+
+    const handleWeightChange = (exIndex: number, setIndex: number, val: string) => {
+        const updated = [...exercises];
+        const parsedReps = val === '' ? 0 : parseFloat(val);
+        if (updated[exIndex].exerciseSets) {
+            updated[exIndex].exerciseSets![setIndex].weight = parsedReps;
+            setExercises(updated);
         }
     };
 
@@ -290,6 +384,12 @@ export default function ActiveWorkoutScreen() {
         setExercises(updated);
     };
 
+    const handleCreateExercise = (exerciseData: ExerciseDTO) => {
+        WorkoutUtils.addExercise(exerciseData);
+        modalControls.closeModal("createExercise");
+        modalControls.openModal("addExercise");
+    };
+
     const handleHistoryPress = () => {
 
     };
@@ -312,6 +412,12 @@ export default function ActiveWorkoutScreen() {
 
         WorkoutUtils.addWorkout(completedWorkout);
         navigation.goBack();
+    };
+
+    const handleOpenAddExerciseMenu = () => {
+        addExerciseButtonRef.current?.measureInWindow((x, y, width, height) => {
+            setAddExerciseMenuAnchor({ x, y, width, height });
+        });
     };
 
     const handleOpenExerciseMenu = (exIndex: number) => {
@@ -469,21 +575,31 @@ export default function ActiveWorkoutScreen() {
 
                             {isExpanded && (
                                 <View style={styles.setsContainer}>
-                                    {Boolean(exercise.exerciseSets?.length) && <View style={styles.setHeaderRow}>
-                                        <Text style={[styles.setHeaderText, {flex: 0.8}]}>Set</Text>
-                                        <Text style={[styles.setHeaderText, {flex: 1.2}]}>Type</Text>
-                                        <Text style={[styles.setHeaderText, {flex: 1}]}>Target*</Text>
-                                        <Text style={[styles.setHeaderText, {flex: 1}]}>Actual*</Text>
-                                        <Text style={[styles.setHeaderText, {flex: 1}]}>Reserve</Text>
-                                        <View style={{width: 30}}/>
-                                    </View>}
+                                    {Boolean(exercise.exerciseSets?.length) &&
+                                        <View style={styles.setHeaderRow}>
+                                            <Text style={[styles.setHeaderText, { width: 28 }]}>Set</Text>
+                                            <Text style={[styles.setHeaderText, { width: 55 }]}>Type</Text>
+                                            <Text style={[styles.setHeaderText, { flex: 1, textAlign: 'center' }]}>{UserUtils.getUserPreferences()!.weightUnit}*</Text>
+                                            <Text style={[styles.setHeaderText, { flex: 1, textAlign: 'center' }]}>Target*</Text>
+                                            <Text style={[styles.setHeaderText, { flex: 1, textAlign: 'center' }]}>Actual*</Text>
+                                            <Text style={[styles.setHeaderText, { flex: 1, textAlign: 'center' }]}>Reserve</Text>
+                                            <View style={{ width: 28 }} />
+                                        </View>}
 
                                     {exercise.exerciseSets?.map((set, setIndex) => (
                                         <View key={setIndex} style={styles.setRow}>
-                                            <Text style={[styles.setText, { flex: 0.8 }]}>{set.setNumber}</Text>
-                                            <Text style={[styles.setText, { flex: 1.2, color: set.setType === "Working" ? accentColor : '#FFFFFF', fontSize: 12 }]}>
+                                            <Text style={[styles.setText, { width: 28, textAlign: 'center' }]}>{set.setNumber}</Text>
+                                            <Text style={[styles.setText, { width: 55, color: set.setType === "Working" ? accentColor : '#888', fontSize: 11, fontWeight: '600' }]}>
                                                 {set.setType}
                                             </Text>
+                                            <TextInput
+                                                style={styles.actualInput}
+                                                placeholder="—"
+                                                placeholderTextColor="#666"
+                                                keyboardType="numeric"
+                                                value={set.weight.toString()}
+                                                onChangeText={(val) => handleWeightChange(exIndex, setIndex, val)}
+                                            />
                                             <TextInput
                                                 style={styles.actualInput}
                                                 placeholder="—"
@@ -534,8 +650,9 @@ export default function ActiveWorkoutScreen() {
 
                 <View style={styles.footerButtonsRow}>
                     <TouchableOpacity
+                        ref={(el) => { addExerciseButtonRef.current = el; }}
                         style={styles.addExerciseButton}
-                        onPress={() => modalControls.openModal("addExercise")}
+                        onPress={handleOpenAddExerciseMenu}
                     >
                         <Ionicons name="add-circle" size={20} color="#FFF" />
                         <Text style={styles.addExerciseButtonText}>Add Exercise</Text>
@@ -593,6 +710,15 @@ export default function ActiveWorkoutScreen() {
                 />
             }
 
+            {modals.createExercise?.isOpen &&
+                <ExerciseModal
+                    visible={modals.createExercise.isOpen}
+                    exercises={WorkoutUtils.getExercises()}
+                    onSave={handleCreateExercise}
+                    onClose={() => modalControls.closeModal("createExercise")}
+                />
+            }
+
             <ActionMenu
                 visible={exerciseMenuAnchor !== null}
                 anchorRect={exerciseMenuAnchor}
@@ -631,6 +757,30 @@ export default function ActiveWorkoutScreen() {
                         icon: 'trash',
                         onPress: () => handleRemoveExercise(),
                     },
+                ]}
+            />
+
+            <ActionMenu
+                visible={addExerciseMenuAnchor !== null}
+                anchorRect={addExerciseMenuAnchor}
+                onClose={() => setAddExerciseMenuAnchor(null)}
+                items={[
+                    {
+                        label: 'Existing',
+                        icon: 'list',
+                        onPress: () => {
+                            setAddExerciseMenuAnchor(null);
+                            modalControls.openModal("addExercise");
+                        }
+                    },
+                    {
+                        label: 'Create New',
+                        icon: 'add',
+                        onPress: () => {
+                            setAddExerciseMenuAnchor(null);
+                            modalControls.openModal("createExercise");
+                        }
+                    }
                 ]}
             />
 
@@ -779,36 +929,38 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     setsContainer: {
-        padding: 12,
+        padding: 8,
     },
     setHeaderRow: {
         flexDirection: 'row',
-        paddingBottom: 8,
+        paddingBottom: 6,
         borderBottomWidth: 1,
         borderBottomColor: '#333',
-        marginBottom: 8,
+        marginBottom: 6,
     },
     setHeaderText: {
         color: '#777',
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: 'bold',
+        textAlign: 'center'
     },
     setRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginVertical: 6,
-        gap: 2
+        marginVertical: 4,
+        gap: 4
     },
     setText: {
         color: '#FFFFFF',
-        fontSize: 14,
+        fontSize: 13,
     },
     actualInput: {
         flex: 1,
+        height: 36,
         backgroundColor: '#2A2A2A',
         color: '#FFFFFF',
-        paddingVertical: 6,
-        paddingHorizontal: 10,
+        paddingVertical: 0,
+        paddingHorizontal: 4,
         borderRadius: 6,
         textAlign: 'center',
         fontSize: 14,

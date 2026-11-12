@@ -45,6 +45,7 @@ export default function TemplateExerciseModal({
     useEffect(() => {
         if (initialData) {
             setSelectedExerciseId(initialData.exerciseClientId);
+            setWarmupSets(initialData.warmupSets ?? 0)
             setTargetSets(initialData.targetSets);
             setTargetRepetitionsMin(initialData.targetRepetitionsMin);
             setTargetRepetitionsMax(initialData.targetRepetitionsMax);
@@ -60,19 +61,20 @@ export default function TemplateExerciseModal({
     );
 
     const handleAddPress = () => {
-        const parsedSets = targetSets;
-        const parsedMin = targetRepetitionsMin;
-        const parsedMax = targetRepetitionsMax;
 
-        if (isNaN(parsedSets) || parsedSets <= 0) {
+        if (isNaN(targetSets) || targetSets <= 0) {
             setError('Target sets must be greater than 0');
             return;
         }
-        if (isNaN(parsedMin) || parsedMin <= 0 || isNaN(parsedMax) || parsedMax <= 0) {
+        if (isNaN(warmupSets) || warmupSets < 0) {
+            setError('Warmup sets must be greater or equal to 0');
+            return;
+        }
+        if (isNaN(targetRepetitionsMin) || targetRepetitionsMin <= 0 || isNaN(targetRepetitionsMax) || targetRepetitionsMax <= 0) {
             setError('Repetition range must be greater than 0');
             return;
         }
-        if (parsedMin > parsedMax) {
+        if (targetRepetitionsMin > targetRepetitionsMax) {
             setError('Min repetitions cannot be greater than max');
             return;
         }
@@ -84,9 +86,10 @@ export default function TemplateExerciseModal({
             exerciseId: WorkoutUtils.getExercise(selectedExerciseId)?.metadata.id,
             exerciseClientId: selectedExerciseId,
             exerciseOrder: initialData?.exerciseOrder ?? ((WorkoutUtils.getWorkoutTemplate(workoutTemplateClientId)?.templateExercises?.length ?? 0) + 1),
-            targetSets: parsedSets,
-            targetRepetitionsMin: parsedMin,
-            targetRepetitionsMax: parsedMax,
+            targetSets: targetSets,
+            warmupSets: warmupSets,
+            targetRepetitionsMin: targetRepetitionsMin,
+            targetRepetitionsMax: targetRepetitionsMax,
         };
 
         onSave(templateExercise);
@@ -112,7 +115,7 @@ export default function TemplateExerciseModal({
 
                     <View style={styles.headerRow}>
                         <Text style={styles.title}>
-                            {initialData ? 'Edit Exercise Config' : 'Select Exercise'}
+                            {initialData ? 'Edit Exercise' : 'Select Exercise'}
                         </Text>
                         <TouchableOpacity onPress={onClose}>
                             <Ionicons name="close" size={24} color="#888" />

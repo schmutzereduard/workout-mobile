@@ -5,7 +5,7 @@ import GenericCard from "@/components/GenericCard";
 import { useAppSelector } from "@/store/store";
 import useModals from "@/hooks/useModals";
 import MesocycleModal from "@/components/modal/MesocycleModal";
-import { MesocycleDTO, WorkoutTemplateDTO } from "@/types/workout";
+import { MesocycleDTO } from "@/types/workout";
 import MesocycleHistoryModal from "@/components/modal/MesocycleHistoryModal";
 import {WorkoutUtils, StorageKeys} from "@/utils/Storage";
 import ActionMenu, { AnchorRect } from "@/components/ActionMenu";
@@ -63,14 +63,19 @@ export default function MesocyclesScreen() {
         WorkoutUtils.editMesocycle(mesocycleData);
     };
 
-    const handlePlayPress = (workoutTemplateId: string) => {
-        console.log("Open workout page" + workoutTemplateId + " | " + WorkoutUtils.getActiveMesocycle()?.metadata.clientId);
-    };
-
     let upcomingWorkouts = useStorageListener(
         [StorageKeys.MESOCYCLES, StorageKeys.WORKOUT_TEMPLATES],
         () => WorkoutUtils.getOrderedRemainingMesocycleTemplatesInActiveMesocycle()
     );
+
+    const canStartWorkout = (): boolean => {
+
+        const activeMeso = WorkoutUtils.getActiveMesocycle();
+        if (!activeMeso)
+            return false;
+
+        return new Date().toISOString().split("T")[0] >= activeMeso.startDate;
+    };
 
     return (
         <ScrollView style={[styles.container, { backgroundColor }]}>
@@ -115,7 +120,7 @@ export default function MesocyclesScreen() {
                                                 ? `${template.templateExercises.map(tempEx => WorkoutUtils.getExercises().find(ex => ex.metadata.clientId === tempEx.exerciseClientId)).filter(Boolean).flatMap(ex => ex!.muscleGroups).filter((group, index, self) => self.indexOf(group) === index).join(' • ')}\n${template.templateExercises.length} Exercises${template?.notes ? `\n${template.notes}` : ""}`
                                                 : `0 Exercises${template?.notes ? `\n${template.notes}` : ""}`
                                     }
-                                    onPlayPress={isDeleted ? undefined : () => modalControls.openModal("startWorkout", { workoutTemplateId: template.metadata.clientId, mesocycleId: WorkoutUtils.getActiveMesocycle()!.metadata.clientId})}
+                                    onPlayPress={isDeleted || !canStartWorkout() ? undefined : () => modalControls.openModal("startWorkout", { workoutTemplateId: template.metadata.clientId, mesocycleId: WorkoutUtils.getActiveMesocycle()!.metadata.clientId})}
                                 />
                             </View>
                         );

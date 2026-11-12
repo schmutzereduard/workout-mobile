@@ -77,7 +77,7 @@ export default function MesocycleTemplateModal({
             return;
         }
 
-        const conflict = existingSlots.some(
+        const conflict = initialData === null && existingSlots.some(
             (slot, idx) =>
                 slot.weekNumber === parsedWeek &&
                 slot.dayNumber === parsedDay &&
@@ -91,6 +91,8 @@ export default function MesocycleTemplateModal({
 
         const templateSlot: MesocycleTemplateDTO = {
             id: initialData?.id,
+            mesocycleId: initialData?.mesocycleId,
+            workoutTemplateId: initialData?.workoutTemplateId,
             clientId: initialData?.clientId || Crypto.randomUUID(),
             mesocycleClientId: mesocycleClientId,
             workoutTemplateClientId: selectedTemplateClientId,

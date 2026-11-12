@@ -9,6 +9,7 @@ import ConfirmDialog from "@/components/modal/ConfirmDialog";
 import {router, useFocusEffect} from "expo-router";
 import WorkoutTemplateModal from "@/components/modal/WorkoutTemplateModal";
 import {WorkoutUtils} from "@/utils/Storage";
+import WorkoutHistoryModal from "@/components/modal/WorkoutHistoryModal";
 
 export default function WorkoutTemplatesScreen() {
 
@@ -61,7 +62,7 @@ export default function WorkoutTemplatesScreen() {
     };
 
     const handleHistoryPress = () => {
-        console.log("Opens completed workout history log");
+        modalControls.openModal("workoutHistory");
     };
 
     const handleLongPressCard = (id: string) => {
@@ -187,6 +188,7 @@ export default function WorkoutTemplatesScreen() {
                     onCancel={() => modalControls.closeModal("deleteTemplate")}
                 />
             }
+
             {modals.addTemplate?.isOpen &&
                 <WorkoutTemplateModal
                     visible={modals.addTemplate.isOpen}
@@ -213,6 +215,13 @@ export default function WorkoutTemplatesScreen() {
                     message={"Do you want to start the workout?"}
                     onConfirm={() => { router.push({ pathname: "/workout", params: { workoutTemplateId: modals.startWorkout.workoutTemplateId }}); modalControls.closeModal("startWorkout") }}
                     onCancel={() => modalControls.closeModal("startWorkout")}
+                />
+            }
+
+            {modals.workoutHistory?.isOpen &&
+                <WorkoutHistoryModal
+                    visible={modals.workoutHistory.isOpen}
+                    onClose={() => modalControls.closeModal("workoutHistory")}
                 />
             }
         </View>
