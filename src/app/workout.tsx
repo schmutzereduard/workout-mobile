@@ -164,8 +164,12 @@ export default function ActiveWorkoutScreen() {
             let calculatedWarmupSets;
             if (templateExercise.warmupSets && isDeloadBool) {
                 const deloadPercentage = userPreferences.deloadVolumePercentage;
-                const reducedSets = templateExercise.warmupSets * (1 - deloadPercentage / 100);
-                calculatedWarmupSets = Math.max(1, Math.round(reducedSets));
+                if (deloadPercentage > 0) {
+                    const reducedSets = templateExercise.warmupSets * (1 - deloadPercentage / 100);
+                    calculatedWarmupSets = Math.max(1, Math.round(reducedSets));
+                } else {
+                    calculatedWarmupSets = templateExercise.warmupSets;
+                }
             }
 
             const warmupSets: ExerciseSetDTO[] = Array.from({ length: calculatedWarmupSets || 0 }, (_, setIdx) => ({
@@ -180,8 +184,10 @@ export default function ActiveWorkoutScreen() {
             let calculatedTargetSets = templateExercise.targetSets;
             if (isDeloadBool) {
                 const deloadPercentage = userPreferences.deloadVolumePercentage;
-                const reducedSets = templateExercise.targetSets * (1 - deloadPercentage / 100);
-                calculatedTargetSets = Math.max(1, Math.round(reducedSets));
+                if (deloadPercentage > 0) {
+                    const reducedSets = templateExercise.targetSets * (1 - deloadPercentage / 100);
+                    calculatedTargetSets = Math.max(1, Math.round(reducedSets));
+                }
             }
 
             const workingSets: ExerciseSetDTO[] = Array.from({ length: calculatedTargetSets }, (_, setIdx) => ({
