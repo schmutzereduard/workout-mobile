@@ -216,7 +216,7 @@ export default function MesocycleTemplateModal({
     function handleSelectTemplate(template: WorkoutTemplateDTO) {
         setSelectedTemplateClientId(template.metadata?.clientId);
         setError('');
-    };
+    }
 }
 
 const styles = StyleSheet.create({

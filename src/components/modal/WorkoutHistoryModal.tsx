@@ -13,6 +13,8 @@ import {Ionicons} from '@expo/vector-icons';
 import {useAppSelector} from "@/store/store";
 import {WorkoutDTO} from "@/types/workout";
 import {WorkoutUtils} from "@/utils/Storage";
+import useModals from "@/hooks/useModals";
+import WorkoutDetailModal from "@/components/modal/WorkoutDetailsModal";
 
 interface WorkoutHistoryModalProps {
     visible: boolean;
@@ -27,16 +29,9 @@ export default function WorkoutHistoryModal({
                                             }: WorkoutHistoryModalProps) {
     const {accentColor} = useAppSelector((state: any) => state.sync);
 
-    const [selectedWorkout, setSelectedWorkout] = useState<WorkoutDTO | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
 
-    const handleBack = () => {
-        if (selectedWorkout) {
-            setSelectedWorkout(null);
-        } else {
-            onClose();
-        }
-    };
+    const { modals, modalControls } = useModals();
 
     const filteredHistory = useMemo(() => {
         const pastWorkouts = workoutTemplateId
@@ -53,6 +48,14 @@ export default function WorkoutHistoryModal({
         );
     }, [searchQuery, workoutTemplateId]);
 
+    const handleSelectWorkout = (workout: WorkoutDTO) => {
+        modalControls.openModal("workoutDetails", { selectedWorkout: workout });
+    };
+
+    const handleCloseDetails = () => {
+        modalControls.closeModal("workoutDetails");
+    };
+
     return (
         <Modal
             visible={visible}
@@ -65,145 +68,91 @@ export default function WorkoutHistoryModal({
 
                     <View style={styles.headerContainer}>
                         <View style={styles.headerTitleRow}>
-                            {selectedWorkout && (
-                                <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                                    <Ionicons name="arrow-back" size={22} color="#FFFFFF"/>
-                                </TouchableOpacity>
-                            )}
-                            <Text style={styles.modalTitle}>
-                                {selectedWorkout ? selectedWorkout.name : "Workout History"}
-                            </Text>
+                            <Text style={styles.modalTitle}>Workout History</Text>
                         </View>
                         <TouchableOpacity onPress={onClose}>
                             <Ionicons name="close" size={26} color="#888888"/>
                         </TouchableOpacity>
                     </View>
 
-                    {!selectedWorkout ? (
-                        <View style={styles.listContainer}>
-                            <View style={styles.searchContainer}>
-                                <Ionicons name="search" size={18} color="#888888" style={styles.searchIcon}/>
-                                <TextInput
-                                    style={styles.searchInput}
-                                    placeholder="Search by workout name or date..."
-                                    placeholderTextColor="#666666"
-                                    value={searchQuery}
-                                    onChangeText={setSearchQuery}
-                                />
-                                {searchQuery.length > 0 && (
-                                    <TouchableOpacity onPress={() => setSearchQuery('')}>
-                                        <Ionicons name="close-circle" size={16} color="#888888"/>
-                                    </TouchableOpacity>
-                                )}
-                            </View>
-
-                            <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
-                                {filteredHistory && filteredHistory.length > 0 ? (
-                                    filteredHistory.map((workout, index) => (
-                                        <TouchableOpacity
-                                            key={workout.metadata?.clientId || index}
-                                            style={styles.card}
-                                            onPress={() => setSelectedWorkout(workout)}
-                                        >
-                                            <View style={styles.cardHeader}>
-                                                <Text style={styles.cardTitle}>{workout.name || "Workout Session"}</Text>
-                                                <View style={[styles.badge, {backgroundColor: workout.isDeload ? '#3A2E1E' : '#2C2C2E'}]}>
-                                                    <Text style={[styles.badgeText, workout.isDeload && {color: '#F0AD4E'}]}>
-                                                        {workout.isDeload ? 'Deload' : 'Completed'}
-                                                    </Text>
-                                                </View>
-                                            </View>
-
-                                            <View style={styles.dateRow}>
-                                                <Ionicons name="calendar-outline" size={16} color="#AAAAAA"/>
-                                                <Text style={styles.dateText}>
-                                                    {workout.completedAt ? new Date(workout.completedAt).toLocaleDateString() : 'N/A'}
-                                                </Text>
-                                            </View>
-
-                                            <View style={styles.metaRow}>
-                                                <Text style={styles.metaText}>
-                                                    Exercises: <Text style={{
-                                                    color: accentColor,
-                                                    fontWeight: 'bold'
-                                                }}>{workout.exercises?.length || 0}</Text>
-                                                </Text>
-                                                <Ionicons name="chevron-forward" size={18} color="#888888"/>
-                                            </View>
-                                        </TouchableOpacity>
-                                    ))
-                                ) : (
-                                    <View style={styles.emptyContainer}>
-                                        <Ionicons name="fitness-outline" size={48} color="#555555"/>
-                                        <Text style={styles.emptyText}>No past workouts found.</Text>
-                                    </View>
-                                )}
-                            </ScrollView>
+                    <View style={styles.listContainer}>
+                        <View style={styles.searchContainer}>
+                            <Ionicons name="search" size={18} color="#888888" style={styles.searchIcon}/>
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Search by workout name or date..."
+                                placeholderTextColor="#666666"
+                                value={searchQuery}
+                                onChangeText={setSearchQuery}
+                            />
+                            {searchQuery.length > 0 && (
+                                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                                    <Ionicons name="close-circle" size={16} color="#888888"/>
+                                </TouchableOpacity>
+                            )}
                         </View>
-                    ) : (
+
                         <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
-                            <View style={styles.detailBox}>
-                                <Text style={styles.detailLabel}>Completed Date</Text>
-                                <Text style={styles.detailValue}>
-                                    {selectedWorkout.completedAt ? new Date(selectedWorkout.completedAt).toLocaleString() : 'N/A'}
-                                </Text>
-                            </View>
-
-                            {selectedWorkout.notes ? (
-                                <View style={styles.detailBox}>
-                                    <Text style={styles.detailLabel}>Workout Notes</Text>
-                                    <Text style={styles.detailValue}>{selectedWorkout.notes}</Text>
-                                </View>
-                            ) : null}
-
-                            <View style={styles.detailBox}>
-                                <Text style={styles.detailLabel}>Exercises Performed ({selectedWorkout.exercises?.length || 0})</Text>
-                                {selectedWorkout.exercises && selectedWorkout.exercises.map((exercise, i) => {
-                                    const exerciseInfo = WorkoutUtils.getExercise(exercise.exerciseClientId);
-                                    const exerciseName = exerciseInfo ? exerciseInfo.name : 'Exercise';
-                                    const variation = exerciseInfo?.variation ? ` • ${exerciseInfo.variation}` : '';
-
-                                    return (
-                                        <View key={i} style={styles.exerciseDetailItem}>
-                                            <View style={styles.exerciseHeaderRow}>
-                                                <Ionicons name="barbell-outline" size={16} color={accentColor}/>
-                                                <Text style={styles.exerciseTitleText}>
-                                                    {i + 1}. {exerciseName}{variation}
+                            {filteredHistory && filteredHistory.length > 0 ? (
+                                filteredHistory.map((workout, index) => (
+                                    <TouchableOpacity
+                                        key={workout.metadata?.clientId || index}
+                                        style={styles.card}
+                                        onPress={() => handleSelectWorkout(workout)}
+                                    >
+                                        <View style={styles.cardHeader}>
+                                            <Text style={styles.cardTitle}>{workout.name}</Text>
+                                            <View style={[styles.badge, {backgroundColor: workout.isDeload ? '#3A2E1E' : '#2C2C2E'}]}>
+                                                <Text style={[styles.badgeText, workout.isDeload && {color: '#F0AD4E'}]}>
+                                                    {workout.isDeload ? 'Deload' : 'Completed'}
                                                 </Text>
                                             </View>
-                                            {exercise.exerciseSets && exercise.exerciseSets.map((set, sIdx) => (
-                                                <View key={sIdx} style={styles.setDetailRow}>
-                                                    <Text style={styles.setText}>
-                                                        Set {set.setNumber} ({set.setType}):
-                                                    </Text>
-                                                    <Text style={styles.setValueText}>
-                                                        {set.weight}kg × {set.actualRepetitions ?? 0} reps {set.repetitionsInReserve !== undefined ? `(RIR: ${set.repetitionsInReserve})` : ''}
-                                                    </Text>
-                                                </View>
-                                            ))}
                                         </View>
-                                    );
-                                })}
-                            </View>
 
-                            <View style={styles.viewOnlyBadge}>
-                                <Ionicons name="lock-closed-outline" size={16} color="#888888"/>
-                                <Text style={styles.viewOnlyText}>Past workouts are view-only</Text>
-                            </View>
+                                        <View style={styles.dateRow}>
+                                            <Ionicons name="calendar-outline" size={16} color="#AAAAAA"/>
+                                            <Text style={styles.dateText}>
+                                                {new Date(workout.completedAt).toLocaleDateString()}
+                                            </Text>
+                                        </View>
+
+                                        <View style={styles.metaRow}>
+                                            <Text style={styles.metaText}>
+                                                Exercises: <Text style={{
+                                                color: accentColor,
+                                                fontWeight: 'bold'
+                                            }}>{workout.exercises?.length || 0}</Text>
+                                            </Text>
+                                            <Ionicons name="chevron-forward" size={18} color="#888888"/>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))
+                            ) : (
+                                <View style={styles.emptyContainer}>
+                                    <Ionicons name="fitness-outline" size={48} color="#555555"/>
+                                    <Text style={styles.emptyText}>No past workouts found.</Text>
+                                </View>
+                            )}
                         </ScrollView>
-                    )}
+                    </View>
 
                     <TouchableOpacity
                         style={[styles.closeBtn, {backgroundColor: '#2C2C2E'}]}
-                        onPress={selectedWorkout ? () => setSelectedWorkout(null) : onClose}
+                        onPress={onClose}
                     >
-                        <Text style={styles.closeBtnText}>
-                            {selectedWorkout ? "Back to Workout History" : "Close"}
-                        </Text>
+                        <Text style={styles.closeBtnText}>Close</Text>
                     </TouchableOpacity>
 
                 </Pressable>
             </Pressable>
+
+            {modals.workoutDetails?.isOpen &&
+                <WorkoutDetailModal
+                    visible={modals.workoutDetails.isOpen}
+                    workout={modals.workoutDetails.selectedWorkout}
+                    onClose={handleCloseDetails}
+                />
+            }
         </Modal>
     );
 }
@@ -266,7 +215,9 @@ const styles = StyleSheet.create({
         fontSize: 14,
         paddingVertical: 0,
     },
-    listContainer: {},
+    listContainer: {
+        flexShrink: 1,
+    },
     scrollArea: {
         marginVertical: 8,
     },
@@ -318,67 +269,6 @@ const styles = StyleSheet.create({
     metaText: {
         fontSize: 13,
         color: '#888888',
-    },
-    detailBox: {
-        backgroundColor: '#2A2A2A',
-        borderRadius: 10,
-        padding: 14,
-        marginBottom: 12,
-    },
-    detailLabel: {
-        fontSize: 12,
-        color: '#888888',
-        textTransform: 'uppercase',
-        fontWeight: '600',
-        marginBottom: 4,
-    },
-    detailValue: {
-        fontSize: 15,
-        color: '#FFFFFF',
-        fontWeight: '500',
-    },
-    exerciseDetailItem: {
-        marginTop: 10,
-        paddingTop: 8,
-        borderTopWidth: 1,
-        borderTopColor: '#333333',
-    },
-    exerciseHeaderRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 4,
-    },
-    exerciseTitleText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
-    },
-    setDetailRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingLeft: 24,
-        marginVertical: 2,
-    },
-    setText: {
-        fontSize: 13,
-        color: '#888888',
-    },
-    setValueText: {
-        fontSize: 13,
-        color: '#DDDDDD',
-    },
-    viewOnlyBadge: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 6,
-        marginVertical: 12,
-    },
-    viewOnlyText: {
-        color: '#888888',
-        fontSize: 13,
-        fontStyle: 'italic',
     },
     emptyContainer: {
         alignItems: 'center',

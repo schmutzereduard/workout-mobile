@@ -21,7 +21,7 @@ export default function AlertModal({
             transparent
             visible={visible}
             animationType="fade"
-            onRequestClose={onClose} // Required for Android hardware back button
+            onRequestClose={onClose}
         >
             <Pressable style={styles.overlay} onPress={onClose}>
 
@@ -42,13 +42,13 @@ export default function AlertModal({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)', // Semi-transparent backdrop
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
         justifyContent: 'center',
         alignItems: 'center',
     },
     dialogBox: {
         width: '80%',
-        backgroundColor: '#1E1E1E', // Matches your dark theme cards
+        backgroundColor: '#1E1E1E',
         borderRadius: 16,
         padding: 20,
         alignItems: 'center',

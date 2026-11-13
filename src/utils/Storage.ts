@@ -16,9 +16,8 @@ export const StorageKeys = {
     USER_PREFERENCES: 'user_preferences',
     EXERCISES: "exercises",
     WORKOUT_TEMPLATES: "workout_templates",
-    MESOCYCLE_TEMPLATES: "mesocycle_templates",
-    WORKOUTS: "workouts",
     MESOCYCLES: 'mesocycles',
+    WORKOUTS: "workouts",
     LAST_SYNC_TIMESTAMP: 'last_sync_timestamp',
 } as const;
 
@@ -241,19 +240,6 @@ export class WorkoutUtils {
         return this.getWorkouts().find(workout => workout.metadata.clientId === workoutClientId)?.exercises || [];
     };
 
-    static getMesocycleTemplates(): MesocycleTemplateDTO[] {
-
-        const mesocycleTemplates = storage.getString(StorageKeys.MESOCYCLE_TEMPLATES);
-        if (!mesocycleTemplates)
-            return [];
-
-        return JSON.parse(mesocycleTemplates);
-    };
-
-    static getMesocycleTemplate(mesocycleTemplateClientId: string): MesocycleTemplateDTO | null {
-        return this.getMesocycleTemplates().find(mesocycleTemplate => mesocycleTemplate.clientId === mesocycleTemplateClientId) || null;
-    };
-
     static getActiveMesocycle(): MesocycleDTO | null {
         const todayDate = new Date().toISOString().split('T')[0];
         const mesocycles = this.getMesocycles();
@@ -283,7 +269,7 @@ export class WorkoutUtils {
         if (!mesocycle)
             return [];
 
-        return this.getWorkouts().filter(workout => workout.completedAt >= mesocycle.startDate && workout.completedAt <= mesocycle.endDate);
+        return this.getWorkouts().filter(workout => workout.mesocycleClientId === mesocycleClientId);
     };
 
     static getOrderedRemainingMesocycleTemplatesInActiveMesocycle(): MesocycleTemplateDTO[] {
@@ -316,7 +302,7 @@ export class WorkoutUtils {
 
                 if (currentCount < totalCompleted) {
                     encounteredCounts.set(key, currentCount + 1);
-                    return false; // Already done
+                    return false;
                 }
 
                 encounteredCounts.set(key, currentCount + 1);

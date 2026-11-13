@@ -14,7 +14,7 @@ import { setThemeColors } from "@/store/syncSlice";
 import {LocalStorage, StorageKeys, UserUtils} from "@/utils/Storage";
 import {router, useFocusEffect} from 'expo-router';
 import NumberStepper from "@/components/NumberStepper";
-import {UserPreferencesDTO, UserProfileDTO} from "@/types/workout";
+import {UserPreferencesDTO} from "@/types/workout";
 
 const ACCENT_COLORS = ['#FF0000', '#E8ADAA', '#6200EE', '#03DAC6', '#FF5722', '#4CAF50', '#2196F3'];
 const BACKGROUND_COLORS = ['#121212', '#1E1E1E', '#0B0F19', '#222831'];
@@ -151,7 +151,7 @@ export default function SettingsScreen() {
                         <Text style={styles.subText}>Reduce working sets during deload</Text>
                         <Slider
                             style={styles.slider}
-                            minimumValue={1}
+                            minimumValue={0}
                             maximumValue={100}
                             step={1}
                             value={preferences.deloadVolumePercentage}
@@ -169,7 +169,7 @@ export default function SettingsScreen() {
                         <Text style={styles.subText}>Reduce working weight during deload</Text>
                         <Slider
                             style={styles.slider}
-                            minimumValue={1}
+                            minimumValue={0}
                             maximumValue={100}
                             step={1}
                             value={preferences.deloadIntensityPercentage}

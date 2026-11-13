@@ -22,6 +22,7 @@ import ActionMenu, {AnchorRect} from "@/components/ActionMenu";
 import NotesModal from "@/components/modal/NotesModal";
 import WorkoutExerciseModal from "@/components/modal/WorkoutExerciseModal";
 import ExerciseModal from "@/components/modal/ExerciseModal";
+import WorkoutHistoryModal from "@/components/modal/WorkoutHistoryModal";
 
 const REST_TIME_OPTIONS = [60, 120, 180];
 
@@ -29,7 +30,10 @@ export default function ActiveWorkoutScreen() {
 
     const navigation = useNavigation();
 
-    const { workoutTemplateId, mesocycleId } = useLocalSearchParams();
+    const { workoutTemplateId, mesocycleId, isDeload } = useLocalSearchParams();
+    const templateId = Array.isArray(workoutTemplateId) ? workoutTemplateId[0] : workoutTemplateId;
+    const mesoId = Array.isArray(mesocycleId) ? mesocycleId[0] : mesocycleId;
+    const isDeloadBool = isDeload === 'true';
 
     const { modals, modalControls } = useModals();
 
@@ -75,8 +79,7 @@ export default function ActiveWorkoutScreen() {
 
     useEffect(() => {
         if (workoutTemplateId) {
-            const idString = Array.isArray(workoutTemplateId) ? workoutTemplateId[0] : workoutTemplateId;
-            const workoutTemplate = WorkoutUtils.getWorkoutTemplate(idString);
+            const workoutTemplate = WorkoutUtils.getWorkoutTemplate(templateId);
 
             if (workoutTemplate) {
                 setWorkoutTitle(workoutTemplate.name);
@@ -149,29 +152,43 @@ export default function ActiveWorkoutScreen() {
     const handleExercisesMapping = (workoutTemplate: WorkoutTemplateDTO): WorkoutExerciseDTO[] => {
 
         const templateExercises = workoutTemplate.templateExercises || [];
-        const idString = Array.isArray(mesocycleId) ? mesocycleId[0] : mesocycleId;
-        const completedWorkouts = WorkoutUtils.getCompletedWorkoutsInMesocycle(idString).filter(workout => workout.workoutTemplateClientId === workoutTemplateId);
+        const completedWorkouts = WorkoutUtils.getCompletedWorkoutsInMesocycle(mesoId).filter(workout => workout.workoutTemplateClientId === workoutTemplateId);
         const lastCompletedWorkout = completedWorkouts.sort((a, b) =>
             new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
         )[0];
-        const isDeload = workoutTemplate.isDeload || false;
-        
+
         return templateExercises.map((templateExercise) => {
 
-            const warmupSets: ExerciseSetDTO[] = Array.from({ length: templateExercise.warmupSets || 0 }, (_, setIdx) => ({
+            const userPreferences = UserUtils.getUserPreferences()!;
+
+            let calculatedWarmupSets;
+            if (templateExercise.warmupSets && isDeloadBool) {
+                const deloadPercentage = userPreferences.deloadVolumePercentage;
+                const reducedSets = templateExercise.warmupSets * (1 - deloadPercentage / 100);
+                calculatedWarmupSets = Math.max(1, Math.round(reducedSets));
+            }
+
+            const warmupSets: ExerciseSetDTO[] = Array.from({ length: calculatedWarmupSets || 0 }, (_, setIdx) => ({
                 setType: "Warmup" as ExerciseSetType,
                 setNumber: setIdx + 1,
-                weight: handleExerciseSetWeight(templateExercise, lastCompletedWorkout, setIdx + 1, "Warmup", isDeload),
-                targetRepetitions: templateExercise.targetRepetitionsMin, //TODO -> based on previous performance (mesocycleId) || targetRepetitionsMin
+                weight: handleExerciseSetWeight(templateExercise, lastCompletedWorkout, setIdx + 1, "Warmup"),
+                targetRepetitions: handleExerciseSetTargetReps(templateExercise, lastCompletedWorkout, setIdx + 1, "Warmup"),
                 actualRepetitions: 0,
                 repetitionsInReserve: 0
             }));
 
-            const workingSets: ExerciseSetDTO[] = Array.from({ length: templateExercise.targetSets }, (_, setIdx) => ({
+            let calculatedTargetSets = templateExercise.targetSets;
+            if (isDeloadBool) {
+                const deloadPercentage = userPreferences.deloadVolumePercentage;
+                const reducedSets = templateExercise.targetSets * (1 - deloadPercentage / 100);
+                calculatedTargetSets = Math.max(1, Math.round(reducedSets));
+            }
+
+            const workingSets: ExerciseSetDTO[] = Array.from({ length: calculatedTargetSets }, (_, setIdx) => ({
                 setType: "Working" as ExerciseSetType,
                 setNumber: setIdx + 1,
-                weight: handleExerciseSetWeight(templateExercise, lastCompletedWorkout, setIdx + 1, "Working", isDeload),
-                targetRepetitions: templateExercise.targetRepetitionsMin, //TODO -> based on previous performance (mesocycleId) || 0
+                weight: handleExerciseSetWeight(templateExercise, lastCompletedWorkout, setIdx + 1, "Working"),
+                targetRepetitions: handleExerciseSetTargetReps(templateExercise, lastCompletedWorkout, setIdx + 1, "Working"),
                 actualRepetitions: 0,
                 repetitionsInReserve: 0
             }));
@@ -193,8 +210,7 @@ export default function ActiveWorkoutScreen() {
         templateExercise: TemplateExerciseDTO,
         lastCompletedWorkout: WorkoutDTO,
         setNumber: number,
-        setType: ExerciseSetType,
-        isDeload: boolean
+        setType: ExerciseSetType
     ): number => {
 
         const defaultValue = 0;
@@ -217,11 +233,14 @@ export default function ActiveWorkoutScreen() {
             return defaultValue;
 
         const lastWeightUsed = previousSet.weight;
-        if (isDeload) {
+        if (isDeloadBool) {
             const deloadPercentage = userPreferences.deloadIntensityPercentage;
-            const reducedWeight = lastWeightUsed * (1 - deloadPercentage / 100);
-
-            return Math.max(0, Math.round(reducedWeight / 2.5) * 2.5);
+            if (deloadPercentage > 0) {
+                const reducedWeight = lastWeightUsed * (1 - deloadPercentage / 100);
+                return Math.max(0, Math.round(reducedWeight / 2.5) * 2.5);
+            } else {
+                return lastWeightUsed;
+            }
         }
 
         if (templateExercise.targetRepetitionsMin === templateExercise.targetRepetitionsMax) { //Linear
@@ -254,6 +273,54 @@ export default function ActiveWorkoutScreen() {
         } else {
             return defaultValue;
         }
+    };
+
+    const handleExerciseSetTargetReps = (
+        templateExercise: TemplateExerciseDTO,
+        lastCompletedWorkout: WorkoutDTO,
+        setNumber: number,
+        setType: ExerciseSetType,
+    ): number => {
+
+        const defaultValue = templateExercise.targetRepetitionsMin;
+
+        if (!lastCompletedWorkout)
+            return defaultValue;
+
+        const lastCompletedExercise = lastCompletedWorkout.exercises?.find(
+            exercise => exercise.exerciseClientId === templateExercise.exerciseClientId
+        );
+
+        if (!lastCompletedExercise || !lastCompletedExercise.exerciseSets || lastCompletedExercise.exerciseSets.length === 0)
+            return defaultValue;
+
+        const previousSet = lastCompletedExercise.exerciseSets.find(
+            exerciseSet => exerciseSet.setType === setType && exerciseSet.setNumber === setNumber
+        ) || lastCompletedExercise.exerciseSets[lastCompletedExercise.exerciseSets.length - 1];
+
+        if (!previousSet)
+            return defaultValue;
+
+        const actualRepsLastTime = previousSet.actualRepetitions;
+
+        if (templateExercise.targetRepetitionsMin === templateExercise.targetRepetitionsMax) { // Linear
+            return templateExercise.targetRepetitionsMax;
+        } else if ((templateExercise.targetRepetitionsMax) > (templateExercise.targetRepetitionsMin)) { //Double
+            const maxRepRange = templateExercise.targetRepetitionsMax;
+            const minRepRange = templateExercise.targetRepetitionsMin;
+
+            const allSetsHitTopOfRange = lastCompletedExercise.exerciseSets.every(
+                exerciseSet => exerciseSet.actualRepetitions >= maxRepRange
+            );
+
+            if (allSetsHitTopOfRange) {
+                return minRepRange;
+            } else {
+                return Math.min(maxRepRange, Math.max(minRepRange, actualRepsLastTime + 1));
+            }
+        }
+
+        return defaultValue;
     };
 
     const toggleExerciseExpand = (cardKey: string) => {
@@ -391,22 +458,22 @@ export default function ActiveWorkoutScreen() {
     };
 
     const handleHistoryPress = () => {
-
+        modalControls.openModal("workoutHistory", { workoutTemplateId: workoutTemplateId });
     };
 
     const handleCompleteWorkout = () => {
-
-        const workoutTemplateClientId = Array.isArray(workoutTemplateId) ? workoutTemplateId[0] : workoutTemplateId;
 
         const completedWorkout: WorkoutDTO = {
             metadata: {
                 clientId: workoutClientId
             },
-            completedAt: new Date().toString(),
-            workoutTemplateClientId: workoutTemplateClientId,
+            startedAt: new Date(workoutStartTime!).toISOString(),
+            completedAt: new Date().toISOString(),
+            mesocycleClientId: mesoId,
+            workoutTemplateClientId: templateId,
             exercises: exercises,
             notes: workoutNotes,
-            isDeload: WorkoutUtils.getWorkoutTemplate(workoutTemplateClientId)!.isDeload,
+            isDeload: isDeloadBool,
             name: workoutTitle
         };
 
@@ -719,6 +786,14 @@ export default function ActiveWorkoutScreen() {
                 />
             }
 
+            {modals.workoutHistory?.isOpen &&
+                <WorkoutHistoryModal
+                    visible={modals.workoutHistory.isOpen}
+                    workoutTemplateId={modals.workoutHistory.workoutTemplateId}
+                    onClose={() => modalControls.closeModal("workoutHistory")}
+                />
+            }
+
             <ActionMenu
                 visible={exerciseMenuAnchor !== null}
                 anchorRect={exerciseMenuAnchor}
@@ -737,11 +812,6 @@ export default function ActiveWorkoutScreen() {
                             }
                         })
                     },
-                    ...(mesocycleId ? [{
-                        label: 'History',
-                        icon: 'time' as const,
-                        onPress: () => modalControls.openModal("exerciseHistory")
-                    }] : []),
                     ...(selectedExerciseIndex !== null && selectedExerciseIndex > 0 ? [{
                         label: 'Move Up',
                         icon: 'chevron-up' as const,

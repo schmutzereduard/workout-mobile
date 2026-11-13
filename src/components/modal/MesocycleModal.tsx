@@ -119,8 +119,8 @@ export default function MesocycleModal({
                 updated[editingTemplateIndex] = {
                     ...updated[editingTemplateIndex],
                     workoutTemplateClientId: slotData.workoutTemplateClientId,
-                    weekNumber: slotData.weekNumber, // <-- Ensure weekNumber updates correctly
-                    dayNumber: slotData.dayNumber,     // <-- Ensure dayNumber updates correctly
+                    weekNumber: slotData.weekNumber,
+                    dayNumber: slotData.dayNumber,
                 };
                 return updated;
             } else {
@@ -258,7 +258,7 @@ export default function MesocycleModal({
 
     const handleRepeatLastWeek = () => {
         if (scheduledWorkouts.length === 0) {
-            setError('Add workouts for Week 1 before repeating.');
+            setError('Add workouts for Week 1 before repeating');
             return;
         }
 
@@ -285,9 +285,14 @@ export default function MesocycleModal({
     };
 
     const handleTargetWeeksChange = (val: number) => {
+        if (scheduledWorkouts.find(workout => workout.weekNumber >= val)) {
+            setError(`There are scheduled workouts registered for week ${val + 1}`)
+            return;
+        }
         setTargetWeeks(val);
         if (val < deloadWeek)
             setDeloadWeek(val);
+        setError("");
     };
 
     const isEditMode = !!initialData?.metadata?.clientId;

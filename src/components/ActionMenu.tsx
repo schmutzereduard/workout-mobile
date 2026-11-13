@@ -43,7 +43,7 @@ export default function ActionMenu({
                                    }: ActionMenuProps) {
     if (!visible || !anchorRect) return null;
 
-    let left = anchorRect.x;//
+    let left = anchorRect.x;
     if (left + MENU_WIDTH > SCREEN_WIDTH - 16) {
         left = Math.max(16, anchorRect.x + anchorRect.width - MENU_WIDTH);
     }
@@ -93,7 +93,7 @@ export default function ActionMenu({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.25)', // Subtle backdrop so user can tap outside
+        backgroundColor: 'rgba(0, 0, 0, 0.25)',
     },
     menuBox: {
         position: 'absolute',

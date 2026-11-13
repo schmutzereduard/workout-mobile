@@ -14,6 +14,7 @@ import AlertModal from "@/components/modal/AlertModal";
 import { useStorageListener } from "@/hooks/useStorageListener";
 import ConfirmDialog from "@/components/modal/ConfirmDialog";
 import {router} from "expo-router";
+import WorkoutDetailModal from "@/components/modal/WorkoutDetailsModal";
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -35,7 +36,7 @@ export default function MesocyclesScreen() {
     const handleDatePress = (date: string) => {
         let workoutByDate = WorkoutUtils.getWorkoutByDate(date);
         if (workoutByDate) {
-            modalControls.openModal("viewWorkout", { workout: workoutByDate });
+            modalControls.openModal("viewWorkout", { selectedWorkout: workoutByDate });
         }
     };
 
@@ -64,7 +65,7 @@ export default function MesocyclesScreen() {
     };
 
     let upcomingWorkouts = useStorageListener(
-        [StorageKeys.MESOCYCLES, StorageKeys.WORKOUT_TEMPLATES],
+        [StorageKeys.MESOCYCLES, StorageKeys.WORKOUT_TEMPLATES, StorageKeys.WORKOUTS, StorageKeys.MESOCYCLES],
         () => WorkoutUtils.getOrderedRemainingMesocycleTemplatesInActiveMesocycle()
     );
 
@@ -120,7 +121,11 @@ export default function MesocyclesScreen() {
                                                 ? `${template.templateExercises.map(tempEx => WorkoutUtils.getExercises().find(ex => ex.metadata.clientId === tempEx.exerciseClientId)).filter(Boolean).flatMap(ex => ex!.muscleGroups).filter((group, index, self) => self.indexOf(group) === index).join(' • ')}\n${template.templateExercises.length} Exercises${template?.notes ? `\n${template.notes}` : ""}`
                                                 : `0 Exercises${template?.notes ? `\n${template.notes}` : ""}`
                                     }
-                                    onPlayPress={isDeleted || !canStartWorkout() ? undefined : () => modalControls.openModal("startWorkout", { workoutTemplateId: template.metadata.clientId, mesocycleId: WorkoutUtils.getActiveMesocycle()!.metadata.clientId})}
+                                    onPlayPress={isDeleted || !canStartWorkout() ? undefined : () => modalControls.openModal("startWorkout", {
+                                        workoutTemplateId: template.metadata.clientId,
+                                        mesocycleId: WorkoutUtils.getActiveMesocycle()!.metadata.clientId,
+                                        isDeload: mesoTemp.weekNumber === WorkoutUtils.getMesocycle(mesoTemp.mesocycleClientId)!.deloadWeek
+                                    })}
                                 />
                             </View>
                         );
@@ -172,8 +177,20 @@ export default function MesocyclesScreen() {
                         title={"Start Workout"}
                         visible={modals.startWorkout.isOpen}
                         message={"Do you want to start the workout?"}
-                        onConfirm={() => { router.push({ pathname: "/workout", params: { workoutTemplateId: modals.startWorkout.workoutTemplateId, mesocycleId: modals.startWorkout.mesocycleId }}); modalControls.closeModal("startWorkout") }}
+                        onConfirm={() => { router.push({ pathname: "/workout", params: {
+                            workoutTemplateId: modals.startWorkout.workoutTemplateId,
+                                mesocycleId: modals.startWorkout.mesocycleId,
+                                isDeload: modals.startWorkout.isDeload
+                        }}); modalControls.closeModal("startWorkout") }}
                         onCancel={() => modalControls.closeModal("startWorkout")}
+                    />
+                }
+
+                {modals.viewWorkout?.isOpen &&
+                    <WorkoutDetailModal
+                        visible={modals.viewWorkout.isOpen}
+                        workout={modals.viewWorkout.selectedWorkout}
+                        onClose={() => modalControls.closeModal("viewWorkout")}
                     />
                 }
 

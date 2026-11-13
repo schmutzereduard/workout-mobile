@@ -57,6 +57,7 @@ export default function MesocycleCalendar({ onSelectDate, onElipsisPress }: Meso
         });
 
         const isInMesocycle = !!matchedMesocycle;
+        const isWorkout = Boolean(WorkoutUtils.getWorkoutByDate(dateString));
 
         days.push(
             <TouchableOpacity
@@ -67,6 +68,10 @@ export default function MesocycleCalendar({ onSelectDate, onElipsisPress }: Meso
                         backgroundColor: `${accentColor}33`,
                         borderRadius: 8
                     },
+                    isWorkout && {
+                        backgroundColor: `${accentColor}`,
+                        borderRadius: 8
+                    }
                 ]}
                 onPress={() => onSelectDate && onSelectDate(dateString, matchedMesocycle)}
             >

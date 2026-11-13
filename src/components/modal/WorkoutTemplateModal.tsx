@@ -88,6 +88,7 @@ export default function WorkoutTemplateModal({
             metadata,
             name: title.trim(),
             notes: notes.trim(),
+            isDeload: false,
             templateExercises: linkedTemplates
         });
         onClose();
